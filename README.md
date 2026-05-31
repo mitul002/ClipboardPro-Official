@@ -84,7 +84,7 @@
 
 ### Method 2: Windows Package Manager (Winget)
 ```cmd
-winget install ClipboardPro
+winget install CrossTech.ClipboardPro
 ```
 
 ### Method 3: Chocolatey
