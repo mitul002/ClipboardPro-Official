@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>clipboardpro</id>
+    <version>1.0.0</version>
+    <title>Clipboard Pro</title>
+    <authors>Cross Tech</authors>
+    <projectUrl>https://clipboardpro.vercel.app</projectUrl>
+    <iconUrl>https://clipboardpro.vercel.app/logo.png</iconUrl>
+    <description>Premium clipboard manager and productivity tool for Windows.</description>
+    <summary>Clipboard Pro is a smart productivity tool featuring an Expender, Quick Drop Shelf, and window management helpers.</summary>
+    <tags>clipboard utility productivity manager windows</tags>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

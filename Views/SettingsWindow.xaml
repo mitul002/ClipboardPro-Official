@@ -1,0 +1,583 @@
+<Window x:Class="ClipboardPro.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings" Height="650" Width="850"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Opacity="{DynamicResource GlobalOpacity}"
+        WindowStartupLocation="CenterScreen" ShowInTaskbar="True"
+        PreviewMouseWheel="OnPreviewMouseWheel">
+
+    <Border Background="{DynamicResource BgDeep}" CornerRadius="16" BorderBrush="#44888888" BorderThickness="1" MouseLeftButtonDown="Window_MouseDown">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="15" ShadowDepth="2" Opacity="0.15" Color="Black"/>
+        </Border.Effect>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="190"/>
+                <ColumnDefinition Width="17"/> <!-- 17px Left Gap -->
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="17"/> <!-- 17px Right Gap -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar -->
+            <Border Grid.Column="0" Background="{DynamicResource BgSidebar}" CornerRadius="16,0,0,16" 
+                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0"
+                    MouseLeftButtonDown="Window_MouseDown">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="24,40,24,17">
+                        <TextBlock Text="SETTINGS" Foreground="{DynamicResource AccentPrimary}" 
+                                   FontSize="11" FontWeight="ExtraBold"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <Image Source="pack://application:,,,/logo.png" Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <TextBlock Text="ClipboardPro" Foreground="{DynamicResource TextMuted}" 
+                                       FontSize="18" FontWeight="Bold" Margin="2,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Margin="12,0">
+                        <StackPanel.Resources>
+                            <!-- Independent Style for Settings Sidebar to avoid conflict with MainWindow selection logic -->
+                            <Style x:Key="SettingsNavButton" TargetType="Button">
+                                <Setter Property="Background"      Value="Transparent"/>
+                                <Setter Property="Foreground"      Value="{DynamicResource TextSecondary}"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                                <Setter Property="Padding"         Value="16,12"/>
+                                <Setter Property="Cursor"          Value="Hand"/>
+                                <Setter Property="FontSize"        Value="14"/>
+                                <Setter Property="Margin"          Value="0,0,0,17"/> <!-- 17px Vertical Gap between items -->
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Grid Margin="0,1">
+                                                <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="10">
+                                                    <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                                                </Border>
+                                                <Rectangle x:Name="Indicator" Width="4" Height="18" HorizontalAlignment="Left" 
+                                                           VerticalAlignment="Center" Fill="{DynamicResource AccentPrimary}" 
+                                                           RadiusX="2" RadiusY="2" Visibility="Collapsed" Margin="4,0,0,0"/>
+                                            </Grid>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="Tag" Value="Active">
+                                                    <Setter TargetName="Indicator" Property="Visibility" Value="Visible"/>
+                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BadgeBg}"/>
+                                                    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgCardHover}"/>
+                                                    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </StackPanel.Resources>
+                        
+                        <Button x:Name="BtnNavGeneral" Style="{StaticResource SettingsNavButton}" Tag="Active" Click="Nav_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="" FontFamily="Segoe MDL2 Assets" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="18"/>
+                                <TextBlock Text="General" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnNavShortcuts" Style="{StaticResource SettingsNavButton}" Click="Nav_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xED1E;" FontFamily="Segoe MDL2 Assets" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="18"/>
+                                <TextBlock Text="Shortcuts" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnNavHistory" Style="{StaticResource SettingsNavButton}" Click="Nav_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="18"/>
+                                <TextBlock Text="History" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnNavData" Style="{StaticResource SettingsNavButton}" Click="Nav_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="" FontFamily="Segoe MDL2 Assets" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="18"/>
+                                <TextBlock Text="Data" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnNavLicense" Style="{StaticResource SettingsNavButton}" Click="Nav_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8D7;" FontFamily="Segoe MDL2 Assets" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="18"/>
+                                <TextBlock Text="License" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnNavAbout" Style="{StaticResource SettingsNavButton}" Click="Nav_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="" FontFamily="Segoe MDL2 Assets" Margin="0,0,16,0" VerticalAlignment="Center" FontSize="18"/>
+                                <TextBlock Text="About" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Content Area -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <Border Grid.Row="0" Height="100" Padding="40,20">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="TxtTitle" Text="General" Foreground="{DynamicResource TextPrimary}" 
+                                       FontSize="28" FontWeight="ExtraBold"/>
+                        </StackPanel>
+                        <Button HorizontalAlignment="Right" VerticalAlignment="Center" Content="" 
+                                FontFamily="Segoe MDL2 Assets" Style="{StaticResource IconButtonStyle}" 
+                                FontSize="18" Click="BtnClose_Click" Foreground="{DynamicResource DangerBrush}"/>
+                    </Grid>
+                </Border>
+
+                <!-- Scrollable Settings -->
+                <ScrollViewer Grid.Row="1" Style="{StaticResource SlimScrollViewer}" Padding="24,0,24,20">
+                    <StackPanel>
+                        <!-- ── GENERAL ────────────────────────── -->
+                        <StackPanel x:Name="PanelGeneral">
+                            <!-- Appearance Category -->
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="Appearance" Foreground="{DynamicResource TextPrimary}" FontSize="16" FontWeight="Bold" Margin="0,0,0,20"/>
+                                    <Grid Margin="0,0,0,24">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Theme Mode" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Light, Dark, or follow Windows theme" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <ComboBox x:Name="CmbThemeMode" Style="{StaticResource DarkComboBox}" Width="150" HorizontalAlignment="Right" VerticalAlignment="Center" MaxDropDownHeight="200" SelectionChanged="Settings_Changed">
+                                            <ComboBoxItem Content="Light Mode"/>
+                                            <ComboBoxItem Content="Dark Mode"/>
+                                            <ComboBoxItem Content="System Default"/>
+                                        </ComboBox>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,24">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Transparency mode" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Enable glass-morphism and semi-transparent effects" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="ChkTransparency" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="Settings_Changed"/>
+                                    </Grid>
+                                    <Grid Margin="0,16,0,0">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Window Opacity" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock x:Name="TxtOpacityValue" Text="100%" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <Slider x:Name="SldOpacity" Width="150" HorizontalAlignment="Right" VerticalAlignment="Center" 
+                                                Minimum="0.8" Maximum="1.0" Value="1.0" TickFrequency="0.01" IsSnapToTickEnabled="False"
+                                                ValueChanged="SldOpacity_ValueChanged"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Behavior Category -->
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="Behavior" Foreground="{DynamicResource TextPrimary}" FontSize="16" FontWeight="Bold" Margin="0,0,0,20"/>
+                                    <Grid Margin="0,0,0,24">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Run at startup" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Start ClipboardPro automatically when Windows starts" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="ChkStartup" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="Settings_Changed"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,24">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Close to tray" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Closing the window hides it instead of exiting" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="ChkMinimizeToTray" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="Settings_Changed"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,24">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Always on top" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Keep the window above all other windows" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="ChkAlwaysOnTop" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="Settings_Changed"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,0">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Quick-Drop Action" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Choose bubble action or disable it" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <ComboBox x:Name="CmbQuickDropAction" Style="{StaticResource DarkComboBox}" Width="150" HorizontalAlignment="Right" VerticalAlignment="Center" MaxDropDownHeight="200" SelectionChanged="Settings_Changed">
+                                            <ComboBoxItem Content="Off"/>
+                                            <ComboBoxItem Content="Main Window"/>
+                                            <ComboBoxItem Content="Mini Mode"/>
+                                            <ComboBoxItem Content="Quick Paste Bar"/>
+                                            <ComboBoxItem Content="Local Share"/>
+                                            <ComboBoxItem Content="Temporary Shelf"/>
+                                        </ComboBox>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Privacy & Features Category -->
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="Privacy &amp; Features" Foreground="{DynamicResource TextPrimary}" FontSize="16" FontWeight="Bold" Margin="0,0,0,20"/>
+                                    <Grid Margin="0,0,0,24">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Sensitive Data Masking" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Auto-hide Credit Cards and API Keys" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="ChkMasking" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="Settings_Changed"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,0">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Quick Paste Bar" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Enable the floating slim bar for pinned items" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="ChkQuickPasteBar" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="Settings_Changed"/>
+                                    </Grid>
+                                    <Grid Margin="0,24,0,0">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Text Expander" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Auto-expand shortcuts (e.g. ;em → your@email.com) in any app" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="ChkTextExpander" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="Settings_Changed"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                        
+                        <!-- ── SHORTCUTS ─────────────────────── -->
+                        <StackPanel x:Name="PanelShortcuts" Visibility="Collapsed">
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="Keyboard Shortcuts" Foreground="{DynamicResource TextPrimary}" FontSize="16" FontWeight="Bold" Margin="0,0,0,20"/>
+                                    <Grid Margin="0,0,0,16">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Main History window" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Global hotkey to show or hide the history" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <TextBox x:Name="TxtHotkeyMain" Style="{StaticResource InputBox}" Width="150" HorizontalAlignment="Right" 
+                                                 VerticalAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" Cursor="Hand"
+                                                 PreviewKeyDown="Hotkey_PreviewKeyDown"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,16">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Mini Mode" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Global hotkey to open Mini Mode search and paste" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <TextBox x:Name="TxtHotkeyPopup" Style="{StaticResource InputBox}" Width="150" HorizontalAlignment="Right" 
+                                                 VerticalAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" Cursor="Hand"
+                                                 PreviewKeyDown="Hotkey_PreviewKeyDown"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,8">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Quick Paste Bar" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Global hotkey to toggle the floating bar" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <TextBox x:Name="TxtHotkeyQuickPasteBar" Style="{StaticResource InputBox}" Width="150" HorizontalAlignment="Right" 
+                                                 VerticalAlignment="Center" HorizontalContentAlignment="Center" IsReadOnly="True" Cursor="Hand"
+                                                 PreviewKeyDown="Hotkey_PreviewKeyDown"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- ── HISTORY ────────────────────────── -->
+                        <StackPanel x:Name="PanelHistory" Visibility="Collapsed">
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="Retention Policy" Foreground="{DynamicResource TextPrimary}" FontSize="16" FontWeight="Bold" Margin="0,0,0,20"/>
+                                    <Grid Margin="0,0,0,24">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Auto-delete old items" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Auto-clean history based on limits" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="ChkAutoDelete" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="Settings_Changed"/>
+                                    </Grid>
+                                    
+                                    <Grid Margin="0,0,0,24">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsChecked, ElementName=ChkAutoDelete}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Maximum history days" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Retention period in days" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <TextBox x:Name="TxtMaxDays" Style="{StaticResource InputBox}" Width="80" HorizontalAlignment="Right" 
+                                                 VerticalAlignment="Center" HorizontalContentAlignment="Center" TextChanged="Settings_Changed"/>
+                                    </Grid>
+                                    
+                                    <Grid Margin="0,0,0,24">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsChecked, ElementName=ChkAutoDelete}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Maximum history items" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Total capacity of history" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <TextBox x:Name="TxtMaxItems" Style="{StaticResource InputBox}" Width="80" HorizontalAlignment="Right" 
+                                                 VerticalAlignment="Center" HorizontalContentAlignment="Center" TextChanged="Settings_Changed"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="Duplicates" Foreground="{DynamicResource TextPrimary}" FontSize="16" FontWeight="Bold" Margin="0,0,0,20"/>
+                                    <Grid>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Merge duplicates" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock Text="Prevent duplicate entries in history" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <CheckBox x:Name="ChkMergeDupes" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="Settings_Changed"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="History Overview" Foreground="{DynamicResource TextPrimary}" FontSize="16" FontWeight="Bold" Margin="0,0,0,20"/>
+                                    <Grid Margin="0,0,0,20">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Background="{DynamicResource BadgeBg}" Width="44" Height="44" CornerRadius="12" Margin="0,0,16,0">
+                                                <TextBlock Text="&#xEA37;" FontFamily="Segoe MDL2 Assets" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource AccentPrimary}" FontSize="20"/>
+                                            </Border>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock x:Name="TxtStatsTotal" Text="Total History Items: 0" Foreground="{DynamicResource TextPrimary}" FontSize="15" FontWeight="Bold"/>
+                                                <TextBlock x:Name="TxtStatsTypes" Text="Pinned: 0 | Favorites: 0" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                    
+                                    <Separator Background="{DynamicResource BorderBrush}" Margin="0,4,0,20"/>
+                                    
+                                    <TextBlock Text="Data Maintenance" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="Bold" Margin="0,0,0,16"/>
+                                    <UniformGrid Columns="2">
+                                        <!-- Clear History Card -->
+                                        <Border Style="{StaticResource Card}" Margin="0,0,10,0" Cursor="Hand" MouseLeftButtonUp="BtnClearAll_Click">
+                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="#EF4444" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                                <TextBlock Text="Clear History" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center" FontSize="13"/>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <!-- Simplified Data Optimization (Matches Clear History) -->
+                                        <Border Style="{StaticResource Card}" Margin="0" Cursor="Hand" MouseLeftButtonUp="BtnOptimizeData_Click">
+                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <TextBlock Text="&#xE9A1;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="{DynamicResource AccentPrimary}" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                                <TextBlock x:Name="TxtOptimizeLabel" Text="Optimize Data" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" FontSize="13"/>
+                                                <TextBlock x:Name="TxtOptimizeStatus" Text="" Foreground="{DynamicResource SuccessBrush}" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="10" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </UniformGrid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- ── DATA ────────────────────────── -->
+                        <StackPanel x:Name="PanelData" Visibility="Collapsed">
+                            <!-- Maintenance Icons Grid -->
+                            <UniformGrid Columns="2" Margin="0,0,0,24">
+                                <!-- Row 1 -->
+                                <Border Style="{StaticResource Card}" Margin="0,0,10,10" Cursor="Hand" MouseLeftButtonUp="BtnExportZip_Click">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE898;" FontFamily="Segoe MDL2 Assets" FontSize="32" Foreground="{DynamicResource AccentPrimary}" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                                        <TextBlock Text="Full Export" Foreground="{DynamicResource TextPrimary}" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="ZIP Backup" FontSize="11" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,10" Cursor="Hand" MouseLeftButtonUp="BtnImportZip_Click">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="32" Foreground="{DynamicResource AccentPrimary}" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                                        <TextBlock Text="Full Import" Foreground="{DynamicResource TextPrimary}" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Restore Data" FontSize="11" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <!-- Row 2 -->
+                                <Border Style="{StaticResource Card}" Margin="0,0,10,0" Cursor="Hand" MouseLeftButtonUp="BtnReset_Click">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="32" Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                                        <TextBlock Text="Reset UI" Foreground="{DynamicResource TextPrimary}" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Default Settings" FontSize="11" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource Card}" Margin="0" Cursor="Hand" MouseLeftButtonUp="BtnResetAll_Click">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="32" Foreground="#EF4444" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                                        <TextBlock Text="Factory Reset" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Wipe Everything" FontSize="11" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </UniformGrid>
+                        </StackPanel>
+
+                        <!-- ── LICENSE ────────────────────────── -->
+                        <StackPanel x:Name="PanelLicense" Visibility="Collapsed">
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="Software Licensing" Foreground="{DynamicResource TextPrimary}" FontSize="16" FontWeight="Bold" Margin="0,0,0,20"/>
+                                    
+                                    <!-- License Status Row -->
+                                    <Grid Margin="0,0,0,24">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Status" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="TxtLicenseStatus" Text="Evaluating / Trial Mode" Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <Border x:Name="BadgeLicense" Background="{DynamicResource BadgeBg}" CornerRadius="8" Padding="12,4" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                            <TextBlock x:Name="TxtLicenseBadge" Text="30 Days Remaining" Foreground="{DynamicResource AccentPrimary}" FontSize="12" FontWeight="Bold"/>
+                                        </Border>
+                                    </Grid>
+                                    
+                                    <!-- Trial Progress Row -->
+                                    <StackPanel x:Name="PanelTrialProgress" Visibility="Collapsed" Margin="0,0,0,24">
+                                        <Grid Margin="0,0,0,6">
+                                            <TextBlock Text="Trial period:" Foreground="{DynamicResource AccentPurple}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </Grid>
+                                        <ProgressBar x:Name="TrialProgressBar" Height="8" Minimum="0" Maximum="100" Value="50" Background="{DynamicResource BgInput}" BorderThickness="0">
+                                            <ProgressBar.Resources>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="CornerRadius" Value="4"/>
+                                                </Style>
+                                            </ProgressBar.Resources>
+                                            <ProgressBar.Foreground>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                    <GradientStop Color="#A78BFA" Offset="0"/>
+                                                    <GradientStop Color="#6366F1" Offset="1"/>
+                                                </LinearGradientBrush>
+                                            </ProgressBar.Foreground>
+                                        </ProgressBar>
+                                    </StackPanel>
+                                    
+                                    <!-- Machine ID Row -->
+                                    <Grid Margin="0,0,0,24">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Stable Hardware ID" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                            <TextBlock x:Name="TxtMachineId" Text="Loading Machine Fingerprint..." Foreground="{DynamicResource TextMuted}" FontSize="11" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                        <Button x:Name="BtnCopyMachineId" Content="Copy ID" Background="{DynamicResource AccentPrimary}" Foreground="White" FontWeight="Bold" Width="80" Height="32" HorizontalAlignment="Right" VerticalAlignment="Center" Click="BtnCopyMachineId_Click" Cursor="Hand">
+                                            <Button.Resources>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="CornerRadius" Value="6"/>
+                                                </Style>
+                                            </Button.Resources>
+                                        </Button>
+                                    </Grid>
+
+                                    <Separator Background="{DynamicResource BorderBrush}" Margin="0,4,0,24"/>
+
+                                    <!-- License Input Area -->
+                                    <StackPanel x:Name="PanelActivationInput">
+                                        <TextBlock Text="Activate License Key" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="Bold" Margin="0,0,0,8"/>
+                                        <TextBlock Text="Enter your purchased license key and registered email address." Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,0,0,12"/>
+
+                                        <!-- Key Row -->
+                                        <TextBlock Text="License Key" Foreground="{DynamicResource AccentPurple}" FontSize="12" FontWeight="Bold" Margin="0,0,0,4"/>
+                                        <TextBox x:Name="TxtLicenseKeyInput" Style="{StaticResource InputBox}" Height="40" Padding="12,8" Margin="0,0,0,10" Tag="XXXX-XXXX-XXXX-XXXX"/>
+
+                                        <!-- Email Row -->
+                                        <TextBlock Text="Email Address" Foreground="{DynamicResource AccentPurple}" FontSize="12" FontWeight="Bold" Margin="0,0,0,4"/>
+                                        <Grid Margin="0,0,0,10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox x:Name="TxtLicenseEmailInput" Style="{StaticResource InputBox}" Height="40" Padding="12,8" Margin="0,0,10,0" Tag="yourname@email.com"/>
+                                            <Button Grid.Column="1" x:Name="BtnActivateLicense" Content="✅  Activate License" Background="{DynamicResource AccentPrimary}" Foreground="White" FontWeight="Bold" Width="150" Height="40" Click="BtnActivateLicense_Click" Cursor="Hand">
+                                                <Button.Resources>
+                                                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style>
+                                                </Button.Resources>
+                                            </Button>
+                                        </Grid>
+
+                                        <!-- Transfer Row -->
+                                        <Grid Margin="0,0,0,10">
+                                            <Button x:Name="BtnLicTransfer" Content="🔄  Request Transfer"
+                                                    Background="#7C3AED" Foreground="White" FontWeight="Bold"
+                                                    Height="40" Visibility="Collapsed"
+                                                    Click="BtnLicTransfer_Click" Cursor="Hand">
+                                                <Button.Resources>
+                                                    <Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style>
+                                                </Button.Resources>
+                                            </Button>
+                                        </Grid>
+
+                                        <!-- Feedback message -->
+                                        <TextBlock x:Name="TxtLicenseMsg" Text="" FontSize="11.5" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap"
+                                                   Visibility="Collapsed" Margin="0,4,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- Deactivation Area (Only visible when active) -->
+                                    <StackPanel x:Name="PanelDeactivation" Visibility="Collapsed">
+                                        <TextBlock Text="Manage License Key" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="Bold" Margin="0,0,0,8"/>
+                                        <TextBlock Text="Your device is permanently licensed. Click deactivate to transfer this license to another PC." Foreground="{DynamicResource TextMuted}" FontSize="12" Margin="0,0,0,16"/>
+                                        <Button x:Name="BtnDeactivateLicense" Content="⚠  Deactivate License" Background="#EF4444" Foreground="White" FontWeight="Bold" Height="40" HorizontalAlignment="Left" Padding="20,0" Click="BtnDeactivateLicense_Click" Cursor="Hand">
+                                            <Button.Resources>
+                                                <Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style>
+                                            </Button.Resources>
+                                        </Button>
+                                    </StackPanel>
+
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- ── ABOUT ─────────────────────────── -->
+                        <StackPanel x:Name="PanelAbout" Visibility="Collapsed">
+                            <Border Style="{StaticResource Card}" Padding="40">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <Border Width="100" Height="100" CornerRadius="24" Background="{DynamicResource BgSidebar}" Margin="0,0,0,24">
+                                        <Image Source="pack://application:,,,/logo.png" Width="70" Height="70" Stretch="Uniform" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    </Border>
+                                    
+                                    <TextBlock Text="ClipboardPro" Foreground="{DynamicResource TextPrimary}" FontSize="32" FontWeight="ExtraBold" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Professional High-Performance Clipboard Manager" Foreground="{DynamicResource TextMuted}" FontSize="14" Margin="0,4,0,32" HorizontalAlignment="Center"/>
+                                    
+                                    <Border Background="{DynamicResource BadgeBg}" CornerRadius="8" Padding="12,4" HorizontalAlignment="Center" Margin="0,0,0,40">
+                                        <TextBlock Text="Version 1.3.0" Foreground="{DynamicResource AccentPrimary}" FontSize="12" FontWeight="Bold"/>
+                                    </Border>
+
+                                    <Grid Width="300">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <StackPanel Grid.Column="0" Margin="0,0,20,0">
+                                            <TextBlock Text="Developer" Foreground="{DynamicResource TextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
+                                            <TextBlock Text="Magnetieght EU" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1" Margin="40,0,0,0">
+                                            <TextBlock Text="Developed By" Foreground="{DynamicResource TextMuted}" FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
+                                            <TextBlock Text="Cross Tech" Foreground="{DynamicResource TextPrimary}" FontSize="14" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <TextBlock Text="© 2026 Magnetieght EU. All rights reserved." Foreground="{DynamicResource TextMuted}" FontSize="11" Margin="0,60,0,0" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

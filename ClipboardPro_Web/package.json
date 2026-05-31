@@ -1,0 +1,12 @@
+{
+  "name": "license-clipboardpro",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "vercel-dev": "vercel dev",
+    "build": "cd website && npm install && npm run build"
+  },
+  "dependencies": {
+    "firebase-admin": "^11.8.0"
+  }
+}

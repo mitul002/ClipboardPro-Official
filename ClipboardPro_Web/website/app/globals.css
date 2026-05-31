@@ -1,0 +1,273 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #090d16; /* Deep Slate Obsidian */
+  --foreground: #F8FAFC;
+  --card: #111827;
+  --card-foreground: #F8FAFC;
+  --popover: #111827;
+  --popover-foreground: #F8FAFC;
+  --primary: #6366F1; /* Indigo-500 */
+  --primary-foreground: #FFFFFF;
+  --secondary: #1E293B;
+  --secondary-foreground: #CBD5E1;
+  --muted: #1E293B;
+  --muted-foreground: #A3B1C6;
+  --accent: #818CF8; /* Light Indigo / Violet */
+  --accent-foreground: #FFFFFF;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: #111827;
+  --ring: #6366F1;
+  --radius: 0.75rem;
+
+  /* Custom ClipboardPro colors */
+  --glow-purple: #6366F1; /* Indigo Glow */
+  --glow-blue: #7C3AED; /* Violet / Dark Purple-Violet Glow */
+  --glass-bg: rgba(9, 13, 22, 0.65); /* Slate Obsidian glass */
+  --glass-border: rgba(99, 102, 241, 0.12); /* Indigo glass border */
+}
+
+@theme inline {
+  --font-sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Glassmorphism utilities */
+.glass {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-card {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.7) 0%,
+    rgba(15, 23, 42, 0.4) 100%
+  );
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card-strong {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 41, 59, 0.85) 0%,
+    rgba(15, 23, 42, 0.6) 100%
+  );
+  backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.glow-purple {
+  box-shadow: 0 0 40px rgba(99, 102, 241, 0.25),
+              0 0 80px rgba(124, 58, 237, 0.12);
+}
+
+.glow-purple-strong {
+  box-shadow: 0 0 60px rgba(99, 102, 241, 0.35),
+              0 0 120px rgba(124, 58, 237, 0.15),
+              0 0 180px rgba(99, 102, 241, 0.08);
+}
+
+.glow-text {
+  text-shadow: 0 0 20px rgba(165, 180, 252, 0.45),
+               0 0 40px rgba(99, 102, 241, 0.25);
+}
+
+/* Animated gradient background */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Pulse glow animation */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+/* Shine effect */
+@keyframes shine {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shine {
+  animation: shine 3s ease-in-out infinite;
+}
+
+/* Scroll reveal animation */
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.scroll-reveal {
+  animation: reveal 0.8s ease-out forwards;
+}
+
+/* Particle animation */
+@keyframes particle-float {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(50px);
+    opacity: 0;
+  }
+}
+
+/* Border gradient animation */
+@keyframes border-glow {
+  0%, 100% {
+    border-color: rgba(99, 102, 241, 0.25);
+  }
+  50% {
+    border-color: rgba(165, 180, 252, 0.4);
+  }
+}
+
+.animate-border-glow {
+  animation: border-glow 3s ease-in-out infinite;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.35);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.55);
+}
+
+/* Hide scrollbar for testimonials */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(99, 102, 241, 0.3);
+  color: white;
+}
+
+/* Focus visible styles */
+:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.4);
+  outline-offset: 2px;
+}
+
+/* Smooth scroll offset for fixed header */
+html {
+  scroll-padding-top: 100px;
+}
+
+/* Text balance utility */
+.text-balance {
+  text-wrap: balance;
+}

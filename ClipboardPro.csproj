@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ClipboardPro</AssemblyName>
+    <RootNamespace>ClipboardPro</RootNamespace>
+    <Version>1.3.0.0</Version>
+    <AssemblyVersion>1.3.0.0</AssemblyVersion>
+    <FileVersion>1.3.0.0</FileVersion>
+    <Authors>Magnetieght EU</Authors>
+    <Company>Cross Tech</Company>
+    <Product>ClipboardPro</Product>
+    <Description>A professional high-performance clipboard manager for Windows</Description>
+    <Copyright>Copyright © 2026 Cross Tech || Magnetieght EU</Copyright>
+    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>ClipboardPro.ico</ApplicationIcon>
+    <DefaultItemExcludes>$(DefaultItemExcludes);project backup\**;Installer\**;dist\**;dist_final\**;dist_full\**;publish\**;New folder\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="ClipboardPro.ico" />
+    <Resource Include="logo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.4" />
+    <PackageReference Include="Obfuscar" Version="2.2.38" PrivateAssets="All" />
+  </ItemGroup>
+
+  <Target Name="ObfuscateRelease" AfterTargets="AfterBuild" Condition=" '$(Configuration)' == 'Release' ">
+    <Message Text="Running Obfuscar to encrypt strings and mangle private MSIL..." Importance="high" />
+    <Exec Command="&quot;$(Obfuscar)&quot; obfuscar.xml" />
+    <Message Text="Copying obfuscated DLL back to source output directories to ensure secure packaging..." Importance="high" />
+    
+    <!-- Binary Output Folders -->
+    <Copy SourceFiles=".\bin\Release\net10.0-windows\Obfuscated\ClipboardPro.dll" DestinationFolder=".\bin\Release\net10.0-windows" OverwriteReadOnlyFiles="true" />
+    <Copy SourceFiles=".\bin\Release\net10.0-windows\Obfuscated\ClipboardPro.dll" DestinationFolder=".\bin\Release\net10.0-windows\win-x64" OverwriteReadOnlyFiles="true" Condition="Exists('.\bin\Release\net10.0-windows\win-x64\ClipboardPro.dll')" />
+    
+    <!-- Intermediate obj Packaging Folders (Secures single-file publish bundling) -->
+    <Copy SourceFiles=".\bin\Release\net10.0-windows\Obfuscated\ClipboardPro.dll" DestinationFolder=".\obj\Release\net10.0-windows" OverwriteReadOnlyFiles="true" Condition="Exists('.\obj\Release\net10.0-windows')" />
+    <Copy SourceFiles=".\bin\Release\net10.0-windows\Obfuscated\ClipboardPro.dll" DestinationFolder=".\obj\Release\net10.0-windows\win-x64" OverwriteReadOnlyFiles="true" Condition="Exists('.\obj\Release\net10.0-windows\win-x64')" />
+    <Copy SourceFiles=".\bin\Release\net10.0-windows\Obfuscated\ClipboardPro.dll" DestinationFolder=".\obj\Release\net10.0-windows\win-x64\Linked" OverwriteReadOnlyFiles="true" Condition="Exists('.\obj\Release\net10.0-windows\win-x64\Linked')" />
+  </Target>
+</Project>

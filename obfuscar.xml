@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Obfuscator>
+  <Var name="InPath" value=".\bin\Release\net10.0-windows" />
+  <Var name="OutPath" value=".\bin\Release\net10.0-windows\Obfuscated" />
+  <Var name="KeepPublicApi" value="true" />
+  <Var name="HidePrivateApi" value="true" />
+  <Var name="RenameFields" value="true" />
+  <Var name="RenameProperties" value="true" />
+  <Var name="RenameEvents" value="true" />
+  <Var name="EncryptStrings" value="true" />
+  <Var name="UseUnicodeNames" value="true" />
+  <Var name="IgnoreResolutionErrors" value="true" />
+  
+  <AssemblySearchPath path="C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref\10.0.7\ref\net10.0" />
+  <AssemblySearchPath path="C:\Program Files\dotnet\packs\Microsoft.WindowsDesktop.App.Ref\10.0.7\ref\net10.0" />
+  
+  <Module file="$(InPath)\ClipboardPro.dll">
+    <!-- Skip entire UI, XAML Binding ViewModels, Models, and Converters for 100% WPF stability -->
+    <SkipType name="ClipboardPro.App" />
+    <SkipNamespace name="ClipboardPro.Views" />
+    <SkipNamespace name="ClipboardPro.ViewModels" />
+    <SkipNamespace name="ClipboardPro.Models" />
+    <SkipNamespace name="ClipboardPro.Converters" />
+    <SkipNamespace name="ClipboardPro.Helpers" />
+  </Module>
+</Obfuscator>

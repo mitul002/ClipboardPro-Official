@@ -1,0 +1,291 @@
+<Window x:Class="ClipboardPro.Views.MiniModeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ClipboardPro.Views"
+        xmlns:conv="clr-namespace:ClipboardPro.Converters"
+        mc:Ignorable="d"
+        Title="Mini Mode" Height="500" Width="400"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Opacity="{DynamicResource GlobalOpacity}"
+        Topmost="True" ShowInTaskbar="False"
+        WindowStartupLocation="Manual">
+
+    <Window.Resources>
+        <conv:InverseNullToVisibilityConverter x:Key="InverseNullToVisibility"/>
+        <conv:NullToVisibilityConverter x:Key="NullToVisibility"/>
+        <conv:ImagePathToImageConverter x:Key="ImagePathToImage"/>
+    </Window.Resources>
+
+    <Border x:Name="RootBorder" Background="{DynamicResource BgDeep}" CornerRadius="12" BorderBrush="#44888888" BorderThickness="1" MouseLeftButtonDown="Window_MouseDown">
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="RootTransform"/>
+        </Border.RenderTransform>
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="15" ShadowDepth="2" Opacity="0.15" Color="Black"/>
+        </Border.Effect>
+        <Grid Margin="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <DockPanel Grid.Row="0" Margin="0,0,0,12">
+                <Image Source="pack://application:,,,/logo.png" Width="20" Height="20" Stretch="Uniform" 
+                       VerticalAlignment="Center" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality"/>
+                <TextBlock Text="Mini Mode" FontSize="16" FontWeight="Bold" 
+                           Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center"/>
+                
+                <Button x:Name="BtnAlwaysOnTop" DockPanel.Dock="Right" HorizontalAlignment="Right"
+                        Width="30" Height="30" Click="BtnAlwaysOnTop_Click" Margin="0,0,4,0">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+                            <Setter Property="FontSize" Value="14"/>
+                            <Setter Property="Content" Value="&#xE718;"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Settings.AlwaysOnTop}" Value="True">
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                    <Setter Property="Content" Value="&#xE840;"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <Button x:Name="BtnQuickPasteBar" DockPanel.Dock="Right" HorizontalAlignment="Right"
+                        Width="30" Height="30" Click="BtnQuickPasteBar_Click" ToolTip="Quick Paste Bar">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+                            <Setter Property="FontSize" Value="14"/>
+                            <Setter Property="Content" Value="&#xE945;"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Settings.EnableQuickPasteBar}" Value="True">
+                                    <Setter Property="Foreground" Value="#f1c40f"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </DockPanel>
+
+            <!-- Search Area -->
+            <Grid Grid.Row="1" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Search Box -->
+                <Grid>
+                    <TextBox x:Name="TxtMiniSearch" Style="{StaticResource SearchBox}" 
+                             Height="36" TextChanged="TxtMiniSearch_TextChanged"
+                             KeyDown="TxtMiniSearch_KeyDown"/>
+                    <TextBlock x:Name="MiniSearchPlaceholder" Text="Search anything..." 
+                               IsHitTestVisible="False" Foreground="{DynamicResource TextMuted}"
+                               VerticalAlignment="Center" Margin="35,0,0,0" Visibility="Visible"/>
+                </Grid>
+
+                <!-- Category Selector -->
+                <Border Grid.Column="1" Margin="8,0,0,0" Background="{DynamicResource BgCard}" CornerRadius="10" 
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="2,0"
+                        PreviewMouseWheel="CategorySelector_PreviewMouseWheel" 
+                        MouseLeftButtonDown="CategorySelector_MouseDown"
+                        IsManipulationEnabled="True"
+                        ManipulationCompleted="CategorySelector_ManipulationCompleted"
+                        ToolTip="Scroll or swipe to switch categories">
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="BtnPrevCategory" Content="&#xE76B;" FontFamily="Segoe MDL2 Assets" 
+                                Style="{StaticResource IconButtonStyle}" Width="24" Height="30" FontSize="10"
+                                Click="BtnPrevCategory_Click"/>
+                        
+                        <TextBlock x:Name="TxtCurrentCategory" Text="All Items" Width="85" TextAlignment="Center" 
+                                   VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AccentPrimary}" TextTrimming="CharacterEllipsis"/>
+                        
+                        <Button x:Name="BtnNextCategory" Content="&#xE76C;" FontFamily="Segoe MDL2 Assets" 
+                                Style="{StaticResource IconButtonStyle}" Width="24" Height="30" FontSize="10"
+                                Click="BtnNextCategory_Click"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Virtualized List -->
+            <ListBox x:Name="PopupList" Grid.Row="2" 
+                     VirtualizingPanel.IsVirtualizing="True"
+                     VirtualizingPanel.VirtualizationMode="Recycling"
+                     VirtualizingPanel.ScrollUnit="Pixel"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     Background="Transparent" BorderThickness="0">
+                <ListBox.Template>
+                    <ControlTemplate TargetType="ListBox">
+                        <ScrollViewer Style="{StaticResource SlimScrollViewer}">
+                            <ItemsPresenter/>
+                        </ScrollViewer>
+                    </ControlTemplate>
+                </ListBox.Template>
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel/>
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <ContentPresenter/>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{DynamicResource BgCard}" CornerRadius="8" Margin="0,0,0,8" 
+                                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                MouseLeftButtonUp="PopupItem_Click"
+                                Cursor="Hand" Tag="{Binding .}"
+                                DataContextChanged="Border_DataContextChanged">
+                            <Grid Margin="10,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Icon -->
+                                <TextBlock VerticalAlignment="Center" FontSize="16" HorizontalAlignment="Center"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           Foreground="{DynamicResource AccentPrimary}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                             <Setter Property="Text" Value="&#xE8A5;"/>
+                                             <Style.Triggers>
+                                                 <DataTrigger Binding="{Binding TypeBadge}" Value="url">   <Setter Property="Text" Value="&#xE71B;"/></DataTrigger>
+                                                 <DataTrigger Binding="{Binding TypeBadge}" Value="email"> <Setter Property="Text" Value="&#xE715;"/></DataTrigger>
+                                                 <DataTrigger Binding="{Binding TypeBadge}" Value="code">  <Setter Property="Text" Value="&#xE943;"/></DataTrigger>
+                                                 <DataTrigger Binding="{Binding TypeBadge}" Value="phone"> <Setter Property="Text" Value="&#xE717;"/></DataTrigger>
+                                                 <DataTrigger Binding="{Binding TypeBadge}" Value="image"> <Setter Property="Text" Value="&#xE8B9;"/></DataTrigger>
+                                                 <DataTrigger Binding="{Binding TypeBadge}" Value="text">  <Setter Property="Text" Value="&#xE8A5;"/></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <!-- Content -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="6,0">
+                                    <Image Source="{Binding ImagePath, Converter={StaticResource ImagePathToImage}}" 
+                                           MaxHeight="60" Stretch="Uniform" HorizontalAlignment="Left" 
+                                           Visibility="{Binding ImagePath, Converter={StaticResource NullToVisibility}}"/>
+                                    <TextBlock Text="{Binding Preview}" Foreground="{DynamicResource TextPrimary}"
+                                               FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="160"
+                                               Visibility="{Binding ImagePath, Converter={StaticResource InverseNullToVisibility}}"/>
+                                </StackPanel>
+
+                                <!-- Time & Color -->
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="8,0" Orientation="Horizontal">
+                                    <Border Width="14" Height="14" CornerRadius="7" Margin="0,0,8,0" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                            VerticalAlignment="Center"
+                                            Visibility="{Binding DetectedColor, Converter={StaticResource NullToVisibility}}">
+                                        <Border.Background>
+                                            <SolidColorBrush Color="{Binding DetectedColor, FallbackValue=#00000000}"/>
+                                        </Border.Background>
+                                    </Border>
+                                    <TextBlock Text="{Binding RelativeTime}" Foreground="{DynamicResource TextMuted}" FontSize="11" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <!-- Actions -->
+                                <StackPanel Grid.Column="3" VerticalAlignment="Center" Margin="4,0">
+                                    <Button Tag="{Binding .}" Click="BtnToggleMask_Click" Width="24" Height="24" ToolTip="Show/Hide Content"
+                                            Visibility="{Binding IsSensitive, Converter={StaticResource BoolToVisibility}}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                                                <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+                                                <Setter Property="Content" Value="&#xED1A;"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsMasked}" Value="False">
+                                                        <Setter Property="Content" Value="&#xE890;"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button FontFamily="Segoe MDL2 Assets" Tag="{Binding .}" Click="BtnPin_Click" Width="24" Height="24" ToolTip="Pin">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                                                <Setter Property="Content" Value="&#xE718;"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                                        <Setter Property="Content" Value="&#xE840;"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button FontFamily="Segoe MDL2 Assets" Tag="{Binding .}" Click="BtnFavorite_Click" Width="24" Height="24" ToolTip="Favorite">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                                                <Setter Property="Content" Value="&#xEB51;"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                                                        <Setter Property="Content" Value="&#xEB52;"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" Tag="{Binding .}" Click="BtnDelete_Click" Width="24" Height="24" ToolTip="Delete"
+                                            Style="{StaticResource IconButtonStyle}" Foreground="{DynamicResource DangerBrush}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <!-- Multi-Undo Snackbar Container -->
+            <ItemsControl VerticalAlignment="Bottom" HorizontalAlignment="Center" 
+                          Margin="0,0,0,20" ItemsSource="{Binding ActiveUndos}" Panel.ZIndex="999">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Vertical"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,6,0,0" Padding="12,8" CornerRadius="10"
+                                Background="{DynamicResource BgSidebar}" BorderBrush="{DynamicResource AccentPrimary}" BorderThickness="1">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="15" ShadowDepth="2" Opacity="0.2" Color="Black"/>
+                            </Border.Effect>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding DisplayName}" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center" Margin="0,0,12,0" FontSize="11" FontWeight="SemiBold"/>
+                                    <Button Content="UNDO" Foreground="{DynamicResource AccentPrimary}" FontWeight="Bold" FontSize="11"
+                                            Background="Transparent" BorderThickness="0" Cursor="Hand" Tag="{Binding .}" Click="BtnUndo_Click"/>
+                                    <TextBlock Text="{Binding Countdown, StringFormat='({0}s)'}" Foreground="{DynamicResource TextMuted}" 
+                                               VerticalAlignment="Center" Margin="5,0,0,0" FontSize="10" Opacity="0.7"/>
+                                </StackPanel>
+                                <ProgressBar Value="{Binding Progress}" Height="2" Margin="0,6,0,0" 
+                                             Background="#15888888" BorderThickness="0" Foreground="{DynamicResource AccentPrimary}"
+                                             Minimum="0" Maximum="100"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
+    </Border>
+</Window>

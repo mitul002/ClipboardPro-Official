@@ -1,0 +1,22 @@
+# Visual Studio
+.vs/
+[Bb]in/
+[Oo]bj/
+[Pp]ublish/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Next.js & Node (for ClipboardPro_Web)
+**/node_modules/
+**/.next/
+**/out/
+**/.vercel/
+**/*.exe
+**/*.zip
+**/*.rar
+
+# OS files
+Thumbs.db
+Desktop.ini
