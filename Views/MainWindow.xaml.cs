@@ -317,7 +317,7 @@ namespace ClipboardPro.Views
                     bool isSnippets = (PanelSnippets.Visibility == System.Windows.Visibility.Visible);
                     PanelSnippets.Visibility = System.Windows.Visibility.Visible;
                     MainListBox.Visibility   = System.Windows.Visibility.Collapsed;
-                    TxtPageTitle.Text        = "Expender";
+                    TxtPageTitle.Text        = "Text Expander Snippets";
                     _vm.ActiveFilter         = "Snippets";
                     return;
                 }

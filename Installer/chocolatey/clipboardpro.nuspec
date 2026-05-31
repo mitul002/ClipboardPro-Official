@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>clipboardpro</id>
-    <version>1.0.0</version>
+    <version>1.3.0</version>
     <title>Clipboard Pro</title>
     <authors>Cross Tech</authors>
     <projectUrl>https://clipboardpro.vercel.app</projectUrl>

@@ -188,7 +188,7 @@ namespace ClipboardPro.ViewModels
         }
 
         public string ActiveFilter { get => _activeFilter; set { _activeFilter = value; OnPropertyChanged(); OnPropertyChanged(nameof(FilterTitle)); ApplyFilter(); } }
-        public string FilterTitle => _activeFilter.StartsWith("cat:") ? _activeFilter.Substring(4) : _activeFilter;
+        public string FilterTitle => _activeFilter == "Snippets" ? "Text Expander Snippets" : (_activeFilter.StartsWith("cat:") ? _activeFilter.Substring(4) : _activeFilter);
         public bool IsGridView { get => _isGridView; set { _isGridView = value; OnPropertyChanged(); } }
         public string SearchText { get => _searchText; set { _searchText = value; OnPropertyChanged(); ApplyFilter(); } }
         public string SortOrder { get => _sortOrder; set { _sortOrder = value; OnPropertyChanged(); ApplyFilter(); } }

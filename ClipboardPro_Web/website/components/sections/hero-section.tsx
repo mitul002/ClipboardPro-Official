@@ -115,7 +115,7 @@ export function HeroSection() {
   const [shelfItems, setShelfItems] = useState<Array<{ id: string; name: string; size: string; type: "image" | "file" | "link"; path: string }>>([
     { id: "s1", name: "invoice_draft_v3.pdf", size: "1.2 MB", type: "file", path: "C:\\Users\\Desktop\\invoice_draft_v3.pdf" },
     { id: "s2", name: "hero_mockup.png", size: "2.4 MB", type: "image", path: "C:\\Users\\Downloads\\hero_mockup.png" },
-    { id: "s3", name: "https://github.com/clipboardpro", size: "Web Link", type: "link", path: "https://github.com/clipboardpro" }
+    { id: "s3", name: "https://github.com/mitul002/ClipboardPro-Official", size: "Web Link", type: "link", path: "https://github.com/mitul002/ClipboardPro-Official" }
   ])
 
   // Masking Toggles

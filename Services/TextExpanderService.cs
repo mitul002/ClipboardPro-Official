@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows.Input;
 using ClipboardPro.Models;
 using Newtonsoft.Json;
@@ -42,8 +43,17 @@ namespace ClipboardPro.Services
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr GetModuleHandle(string lpModuleName);
 
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern short GetAsyncKeyState(int vKey);
+
         [DllImport("user32.dll")]
         private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+        [DllImport("user32.dll")]
+        private static extern int ToUnicode(uint wVirtKey, uint wScanCode, byte[] lpKeyState, [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwszBuff, int cchBuff, uint wFlags);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetKeyboardState(byte[] lpKeyState);
 
         private const uint KEYEVENTF_KEYUP = 0x0002;
         private const byte VK_BACK         = 0x08;
@@ -127,6 +137,7 @@ namespace ClipboardPro.Services
             if (nCode >= 0)
             {
                 int vkCode = Marshal.ReadInt32(lParam);
+                int scanCode = Marshal.ReadInt32(lParam, 4);
                 var key    = KeyInterop.KeyFromVirtualKey(vkCode);
 
                 // ── Undo window ──────────────────────────────────────────────
@@ -183,7 +194,7 @@ namespace ClipboardPro.Services
                     }
                     else
                     {
-                        string? ch = GetCharFromKey(key);
+                        string? ch = GetCharFromKey((uint)vkCode, (uint)scanCode);
                         if (ch != null)
                         {
                             _buffer.Append(ch);
@@ -400,50 +411,32 @@ namespace ClipboardPro.Services
             _lastValue   = null;
         }
 
-        private static string? GetCharFromKey(Key key)
+        private static string? GetCharFromKey(uint vkCode, uint scanCode)
         {
-            // Only handle printable single chars — ignore modifier combos
-            bool isShift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
-            bool isCtrl  = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
-            bool isAlt   = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
-            if (isCtrl || isAlt) return null;
+            byte[] keyState = new byte[256];
+            GetKeyboardState(keyState);
 
-            if (key >= Key.A && key <= Key.Z)
-                return isShift ? key.ToString() : key.ToString().ToLower();
+            // Override with physical state for accuracy in hook
+            keyState[0x10] = (byte)(GetAsyncKeyState(0x10) >> 8); // VK_SHIFT
+            keyState[0x11] = (byte)(GetAsyncKeyState(0x11) >> 8); // VK_CONTROL
+            keyState[0x12] = (byte)(GetAsyncKeyState(0x12) >> 8); // VK_MENU
 
-            if (key >= Key.D0 && key <= Key.D9)
+            bool isCtrl = (keyState[0x11] & 0x80) != 0;
+            bool isAlt  = (keyState[0x12] & 0x80) != 0;
+            // Ignore combos involving Ctrl or Alt, except AltGr which is Ctrl+Alt
+            if ((isCtrl && !isAlt) || (isAlt && !isCtrl)) return null;
+
+            StringBuilder sb = new StringBuilder(5);
+            int result = ToUnicode(vkCode, scanCode, keyState, sb, sb.Capacity, 0);
+
+            if (result > 0)
             {
-                if (isShift)
-                {
-                    string[] shifted = { ")", "!", "@", "#", "$", "%", "^", "&", "*", "(" };
-                    return shifted[key - Key.D0];
-                }
-                return ((int)(key - Key.D0)).ToString();
+                string ch = sb.ToString().Substring(0, result);
+                // Filter out non-printable or control chars
+                if (ch.Length == 1 && char.IsControl(ch[0])) return null;
+                return ch;
             }
-
-            if (key >= Key.NumPad0 && key <= Key.NumPad9)
-                return ((int)(key - Key.NumPad0)).ToString();
-
-            return key switch
-            {
-                Key.OemSemicolon    => isShift ? ":" : ";",
-                Key.OemPeriod       => isShift ? ">" : ".",
-                Key.OemComma        => isShift ? "<" : ",",
-                Key.OemMinus        => isShift ? "_" : "-",
-                Key.OemPlus         => isShift ? "+" : "=",
-                Key.OemQuestion     => isShift ? "?" : "/",
-                Key.OemOpenBrackets => isShift ? "{" : "[",
-                Key.OemCloseBrackets=> isShift ? "}" : "]",
-                Key.OemPipe         => isShift ? "|" : "\\",
-                Key.OemQuotes       => isShift ? "\"" : "'",
-                Key.OemTilde        => isShift ? "~" : "`",
-                Key.Multiply        => "*",
-                Key.Add             => "+",
-                Key.Subtract        => "-",
-                Key.Divide          => "/",
-                Key.Decimal         => ".",
-                _                   => null
-            };
+            return null;
         }
 
         // ── CRUD ──────────────────────────────────────────────────────────────

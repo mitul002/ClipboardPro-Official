@@ -82,7 +82,7 @@ namespace ClipboardPro.Views
             // Subtitle
             var sub = new System.Windows.Controls.TextBlock
             {
-                Text         = "Trigger must start or end with a special character (e.g. ;em, /addr, add#, ty;).\nAllowed special characters: ;  .  /  !  @  #",
+                Text         = "Trigger must start or end with a special character (e.g. ;em, /addr, add#, ty;).\nAllowed special characters: ; . / ! @ # : , ? * - _ + = ~",
                 FontSize     = 12,
                 Margin       = new Thickness(0, 0, 0, 20),
                 TextWrapping = TextWrapping.Wrap,
@@ -166,7 +166,7 @@ namespace ClipboardPro.Views
                 // ── Forced prefix / suffix rule ────────────────────────────
                 if (!HasValidDelimiter(rawTrigger))
                 {
-                    errLabel.Text = "⚠  Trigger must start or end with a special character (;  .  /  !  @  #).\n" +
+                    errLabel.Text = "⚠  Trigger must start or end with a special character (; . / ! @ # : , ? * - _ + = ~).\n" +
                                     "Example: ;em  or  add#";
                     errLabel.Visibility = Visibility.Visible;
                     _txTrigger.Focus();
@@ -213,7 +213,7 @@ namespace ClipboardPro.Views
         {
             if (string.IsNullOrEmpty(trigger)) return false;
 
-            char[] allowedSymbols = { ';', '.', '/', '!', '@', '#' };
+            char[] allowedSymbols = { ';', '.', '/', '!', '@', '#', ':', ',', '?', '*', '-', '_', '+', '=', '~' };
             
             // Check prefix
             if (Array.IndexOf(allowedSymbols, trigger[0]) >= 0) return true;
