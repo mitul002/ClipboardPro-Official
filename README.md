@@ -13,47 +13,66 @@
 
 * 📥 **[Download Latest Installer (.exe)](https://github.com/mitul002/ClipboardPro-Official/releases/download/v1.0.0/ClipboardPro-Setup.exe)**
 * 🌐 **[Official Website & Demo](https://clipboardpro.vercel.app)**
-* 🛒 **[Purchase Lifetime Personal License ($5)](https://crosstech.lemonsqueezy.com/checkout/buy/0e946ba1-a181-4747-a3ee-3719a41cbbb0?enabled=1716270)**
-* 🛒 **[Purchase Lifetime Multi-Device Team License ($10)](https://crosstech.lemonsqueezy.com/checkout/buy/b6bafa95-126c-4c5f-82ab-4b0d4a3f5e7f?enabled=1716321)**
+* 🛒 **[Purchase Yearly Pro License ($9.99/Year)](https://crosstech.lemonsqueezy.com/checkout/buy/0e946ba1-a181-4747-a3ee-3719a41cbbb0?enabled=1716270)**
+* 🛒 **[Purchase Lifetime Pro License ($19.99 One-Time)](https://crosstech.lemonsqueezy.com/checkout/buy/b6bafa95-126c-4c5f-82ab-4b0d4a3f5e7f?enabled=1716321)**
 
 ---
 
-## ✨ Features & Deep-Dive Guide
+## 🚀 Detailed Feature Walkthrough & User Operations
 
 ### 1. 🗄️ Multi-Format History Vault (Main Window)
-* **Access Hotkey:** Press `Ctrl + Alt + V` to bring up the main dashboard.
-* **Categorized Tabs:** History is automatically sorted into:
-  * 📝 **Texts:** Code blocks, logs, notes, and strings.
-  * 🖼️ **Images:** High-resolution screenshots, copies from graphics software, or web images.
-  * 🎨 **Colors:** HEX/RGB color codes.
-  * 🔗 **URLs:** Web links crawled with webpage titles.
-  * 📁 **Files:** References to files copied on your disk.
-* **Frictionless Recycling:** Double-click any element to push it back to the clipboard and paste it directly.
+* **How to use it**:
+  1. Simply copy text, code blocks, images, links, or files as you normally would (`Ctrl + C` or right-click copy).
+  2. Press `Ctrl + Alt + V` (default hotkey) to bring up the main ClipboardPro vault dashboard.
+  3. Use the search bar at the top to filter items by typing keywords.
+  4. Navigate the sidebar tabs (*Texts*, *Images*, *Colors*, *URLs*, and *Files*) to view categorized clipboard history.
+  5. Double-click any item in the history grid to copy it back to your active clipboard and paste it.
+* **Key Benefits**:
+  * **Zero Lost Work:** Never lose code, links, or text templates if you accidentally copy over them or shut down your PC.
+  * **Frictionless Recycling:** Reuse standard text blocks, email drafts, server paths, and links without opening separate scratch files.
 
 ### 2. ⚡ Cursor-Snapping Quick Paste Bar (Mini Mode)
-* **Access Hotkey:** Press `Ctrl + Shift + V` in any code editor, notepad, or input field.
-* **Interface:** A compact horizontal overlay snaps directly next to your active cursor.
-* **Control:** Use keyboard arrow keys or mouse scroll wheel, then press `Enter` to instantly paste. Perfect for maintaining absolute keyboard flow.
+* **How to use it**:
+  1. Press `Ctrl + Shift + V` while editing or typing in any text editor.
+  2. A sleek, compact horizontal bar immediately overlays next to your active mouse/text cursor showing your last 10 copied items.
+  3. Use your keyboard arrow keys or mouse scroll to select the item you want and click or press **Enter** to paste it.
+* **Key Benefits**:
+  * **Stay in Focus:** You don't have to break your concentration by opening a large dashboard window. The paste menu comes directly to your text cursor, letting you paste previous items in milliseconds.
 
-### 3. 🗃️ Drag & Drop Temporary Shelf (macOS Style)
-* **Floating Edge Dock:** A small, modern circular bubble slides onto the left/right edges of your screen.
-* **Batch Gather:** Drag files, screenshots, or code blocks into the bubble. The bubble expands into a drawer showing cards with file details.
-* **Drag-Out Utility:** Drag files from the drawer directly into Discord, VS Code, or email attachments in one go.
+### 3. 🗃️ Drag & Drop Temporary Shelf (macOS Style Yoink/Dropover)
+* **How to use it**:
+  1. **Floating Edge Dock:** A small, circular bubble floats at the edge of your screen (automatically snaps to Left or Right margins).
+  2. **Drag & Stash:** Drag any selected files, text, browser images, or web links towards the bubble. The bubble instantly expands into a slide-out drawer (Temporary Shelf) with a blue count badge.
+  3. **Drag & Drop Out:** Drop items onto the shelf to collect them. Later, open the shelf and drag any card out directly into other apps (e.g. dragging an image into Discord or a code file into VS Code).
+  4. **Integrated Bar Shelf:** The Quick Paste Bar also has a dedicated Shelf icon where you can drop items, opening a vertical popup drawer.
+* **Key Benefits**:
+  * **Batch Gathering:** Perfect for web research or file compiling. Instead of copy-pasting items one-by-one, drag them all to the temporary shelf, then paste them where they belong in one go.
 
-### 4. 🧠 Smart Format Detection & Utilities
-* **JSON Prettifier:** Copy messy JSON, right-click, and select **Prettify JSON** to clean it up with indented formatting instantly.
-* **Visual Color Badge:** HEX and RGB color codes are automatically previewed with visual color circle badges.
-* **Webpage Title Crawler:** Links automatically fetch webpage titles (e.g. "Google") so you see clean titles instead of long, confusing URLs.
-* **Sensitive Masking:** API Keys, passwords, and secrets are dynamically masked with an eye toggle button to protect your credentials during screen shares.
+### 4. 🧠 Smart Content Detection & Visual Helpers
+* **JSON Prettifier:** Copy a messy JSON string. The Quick Paste Bar detects the format, displays a special icon, and lets you right-click and select **Structure/Prettify JSON** to clean it up with indented spacing instantly.
+* **Color Code Preview:** Copy any Hex color code (e.g., `#3498db`). ClipboardPro automatically puts a colored circle badge next to the item so you can visually confirm the color before pasting.
+* **URL Webpage Title Crawler:** Copy a link (e.g., `https://google.com`). In the background, the app crawls the page title and displays "Google" instead of a long messy URL.
+* **Sensitive Eye Masking:** Copy API keys (AWS, Stripe, OpenAI), secrets, or credit card numbers. The app flags them, obfuscates the preview, and displays a sensitive eye toggle. Click it to show/hide the plain text.
 
-### 5. 🎨 In-App Editor & Annotator
-* Right-click any clipboard screenshot and select **Edit** to crop, draw annotations, add text boxes, or highlight sections before pasting.
+### 5. 🎨 In-App Screenshot & Text Editor
+* **How to use it**:
+  1. Capture a screenshot or copy text to your clipboard.
+  2. Right-click the item inside the ClipboardPro vault or Quick Paste Bar and select **Edit**.
+  3. Use the built-in toolbar to crop the image, draw annotations, add text boxes, highlight specific areas, or directly modify copied text.
+  4. Click **Save** to automatically update the clipboard item with your edits.
 
-### 6. 🚀 Keyboard Text Expander (Snippets)
-* Assign trigger abbreviations (e.g. `:email`) that automatically expand into long text templates (e.g. `support@clipboardpro.com`) across any application on your PC.
+### 6. 🚀 Intelligent Keyboard Text Expander
+* **How to use it**:
+  1. Head to the **Snippets** tab (Expender) in ClipboardPro.
+  2. Add a shortcut trigger abbreviation (e.g., `:email`) and the full text (e.g., `support@clipboardpro.com`).
+  3. Type `:email` in any Windows application (Chrome, Outlook, Notepad, VS Code) and press **Space**, **Enter**, or **Tab**.
+  4. The trigger is instantly replaced with your custom text template.
 
 ### 7. 🌐 Peer-to-Peer LAN Sharing
-* Share your clipboard securely across multiple Windows PCs connected to the same local Wi-Fi or Ethernet network.
+* **How to use it**:
+  1. Install ClipboardPro on multiple Windows PCs connected to the same home or office Wi-Fi/LAN network.
+  2. Enable LAN Sharing. The computers automatically discover each other in under 3 seconds.
+  3. Copy text, links, or files on one computer, and paste them immediately on the other (`Ctrl + V`).
 
 ---
 
