@@ -59,7 +59,7 @@ export function Navbar() {
                   className="object-contain"
                 />
               </div>
-              <div className="hidden sm:block">
+              <div className="block">
                 <span className="font-bold text-foreground text-lg tracking-tight">Clipboard<span className="text-indigo-400">Pro</span></span>
               </div>
             </motion.a>
