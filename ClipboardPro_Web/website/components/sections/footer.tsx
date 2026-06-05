@@ -62,7 +62,7 @@ export function Footer() {
               </div>
               <div>
                 <div className="font-bold text-xl text-slate-100 tracking-tight">Clipboard<span className="text-indigo-400">Pro</span></div>
-                <div className="text-xs text-indigo-400 font-mono font-bold">v1.2.0</div>
+                <div className="text-xs text-indigo-400 font-mono font-bold">v1.4.0</div>
               </div>
             </div>
 
