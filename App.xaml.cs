@@ -474,14 +474,18 @@ namespace ClipboardPro
         private MiniModeWindow? _currentMiniMode;
         private void ShowMiniMode()
         {
-            if (_currentMiniMode != null && _currentMiniMode.IsLoaded)
+            // Bug 6 fix: use IsVisible instead of IsLoaded.
+            // AnimateClose() calls Hide() before the async Close(), so IsLoaded stays
+            // true during the 250 ms animation. IsVisible goes false on Hide() immediately,
+            // so pressing the hotkey again during the closing animation opens a fresh window.
+            if (_currentMiniMode != null && _currentMiniMode.IsVisible)
             {
                 _currentMiniMode.Activate();
                 return;
             }
-            
+
             _currentMiniMode = new MiniModeWindow(_vm!);
-            _currentMiniMode.Opacity = _vm.Settings.WindowOpacity; // Apply current opacity
+            _currentMiniMode.Opacity = _vm.Settings.WindowOpacity;
             _currentMiniMode.Closed += (s, e) => _currentMiniMode = null;
             _currentMiniMode.Show();
             _currentMiniMode.Activate();

@@ -24,6 +24,9 @@ namespace ClipboardPro.Views
         private int _currentCategoryIndex = 0;
         private System.DateTime _lastCategorySwitch = System.DateTime.MinValue;
 
+        // Bug 1/2/3 fix: track the exact collection instance we are subscribed to
+        // so we can detach from the correct instance even after FilteredItems is replaced.
+        private System.Collections.ObjectModel.ObservableCollection<ClipboardItem>? _subscribedCollection;
         private System.Collections.Specialized.NotifyCollectionChangedEventHandler? _collectionChangedHandler;
         private PropertyChangedEventHandler? _propertyChangedHandler;
 
@@ -88,18 +91,26 @@ namespace ClipboardPro.Views
 
                 TxtMiniSearch.Focus();
                 AnimateOpen();
-                
+
+                // Bug 1/2/3 fix: helper that attaches CollectionChanged to the CURRENT
+                // FilteredItems instance and detaches from the previous one.
                 _collectionChangedHandler = (s2, e2) => LoadItems(TxtMiniSearch.Text);
-                _vm.FilteredItems.CollectionChanged += _collectionChangedHandler;
-                
-                _propertyChangedHandler = (s2, e2) => {
-                    if (e2.PropertyName == nameof(MainViewModel.FilteredItems)) {
+                AttachCollectionChanged();
+
+                _propertyChangedHandler = (s2, e2) =>
+                {
+                    if (e2.PropertyName == nameof(MainViewModel.FilteredItems))
+                    {
+                        // FilteredItems was replaced by a brand-new collection instance.
+                        // Re-attach to the new instance so we keep receiving changes.
+                        AttachCollectionChanged();
                         LoadItems(TxtMiniSearch.Text);
                     }
-                    if (e2.PropertyName == nameof(MainViewModel.ActiveFilter)) {
-                         int index = _availableCategories.IndexOf(_vm.ActiveFilter);
-                         if (index >= 0) _currentCategoryIndex = index;
-                         UpdateCategoryUI();
+                    if (e2.PropertyName == nameof(MainViewModel.ActiveFilter))
+                    {
+                        int index = _availableCategories.IndexOf(_vm.ActiveFilter);
+                        if (index >= 0) _currentCategoryIndex = index;
+                        UpdateCategoryUI();
                     }
                 };
                 _vm.PropertyChanged += _propertyChangedHandler;
@@ -107,14 +118,12 @@ namespace ClipboardPro.Views
 
             this.Closed += (s, e) =>
             {
-                if (_collectionChangedHandler != null)
-                {
-                    _vm.FilteredItems.CollectionChanged -= _collectionChangedHandler;
-                }
+                // Bug 3 fix: detach from the tracked instance, not _vm.FilteredItems
+                // (which may already point to a newer collection).
+                DetachCollectionChanged();
+
                 if (_propertyChangedHandler != null)
-                {
                     _vm.PropertyChanged -= _propertyChangedHandler;
-                }
 
                 try
                 {
@@ -198,6 +207,24 @@ namespace ClipboardPro.Views
             }
         }
 
+        // Bug 1/2/3 fix: helpers that always operate on the tracked collection instance.
+        private void AttachCollectionChanged()
+        {
+            DetachCollectionChanged();
+            _subscribedCollection = _vm.FilteredItems;
+            if (_subscribedCollection != null && _collectionChangedHandler != null)
+                _subscribedCollection.CollectionChanged += _collectionChangedHandler;
+        }
+
+        private void DetachCollectionChanged()
+        {
+            if (_subscribedCollection != null && _collectionChangedHandler != null)
+            {
+                _subscribedCollection.CollectionChanged -= _collectionChangedHandler;
+                _subscribedCollection = null;
+            }
+        }
+
         private void InitializeCategories()
         {
             _availableCategories.Clear();
@@ -217,12 +244,19 @@ namespace ClipboardPro.Views
             if (_vm.Settings?.CustomCategories != null)
             {
                 foreach (var cat in _vm.Settings.CustomCategories)
-                {
                     _availableCategories.Add("cat:" + cat.Name);
-                }
             }
-            
-            _currentCategoryIndex = _availableCategories.IndexOf(_vm.ActiveFilter);
+
+            // Bug 7 fix: if VM is in "Snippets" mode, Mini Mode can't show snippets,
+            // so silently reset to "All Items" so the list is never empty.
+            string activeFilter = _vm.ActiveFilter;
+            if (activeFilter == "Snippets")
+            {
+                _vm.ActiveFilter = "All Items";
+                activeFilter = "All Items";
+            }
+
+            _currentCategoryIndex = _availableCategories.IndexOf(activeFilter);
             if (_currentCategoryIndex < 0) _currentCategoryIndex = 0;
             UpdateCategoryUI();
         }
@@ -302,9 +336,11 @@ namespace ClipboardPro.Views
             string actualQuery = filterImages ? query.Replace("@image", "", StringComparison.OrdinalIgnoreCase).Trim() : query;
 
             var items = _vm.FilteredItems
-                .Where(i => 
+                .Where(i =>
                 {
-                    bool matchesQuery = string.IsNullOrEmpty(actualQuery) || i.Content.Contains(actualQuery, StringComparison.OrdinalIgnoreCase);
+                    // Bug 4 fix: Content is null for image-only items — guard before calling Contains.
+                    bool matchesQuery = string.IsNullOrEmpty(actualQuery)
+                        || (!string.IsNullOrEmpty(i.Content) && i.Content.Contains(actualQuery, StringComparison.OrdinalIgnoreCase));
                     bool matchesType = !filterImages || !string.IsNullOrEmpty(i.ImagePath);
                     return matchesQuery && matchesType;
                 })
@@ -320,7 +356,10 @@ namespace ClipboardPro.Views
             if (e.Key == WpfKey.Escape) { _isClosing = true; Close(); }
             if (e.Key == WpfKey.Enter)
             {
-                var first = _vm.FilteredItems.FirstOrDefault();
+                // Bug 5 fix: use the DISPLAYED list (PopupList.ItemsSource) not
+                // _vm.FilteredItems which may be unfiltered by the local search query.
+                var displayedItems = PopupList.ItemsSource as System.Collections.Generic.List<ClipboardItem>;
+                var first = displayedItems?.FirstOrDefault() ?? _vm.FilteredItems.FirstOrDefault();
                 if (first != null) PasteAndClose(first);
             }
         }
