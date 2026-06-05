@@ -93,7 +93,7 @@
                                                 <SolidColorBrush Color="{Binding DetectedColor, FallbackValue=#00000000}"/>
                                             </Border.Background>
                                         </Border>
-                                        <Image Source="{Binding ImagePath, Converter={StaticResource ImagePathToImage}}" MaxHeight="24" Visibility="{Binding ImagePath, Converter={StaticResource NullToVisibility}}"/>
+                                        <Image Source="{Binding ImagePath, Converter={StaticResource ImagePathToImage}, IsAsync=True}" MaxHeight="24" Visibility="{Binding ImagePath, Converter={StaticResource NullToVisibility}}"/>
                                         <TextBlock Text="{Binding Preview}" MaxWidth="100" TextTrimming="CharacterEllipsis" FontSize="11" VerticalAlignment="Center"
                                                    Visibility="{Binding ImagePath, Converter={StaticResource InverseNullToVisibility}}"/>
                                         

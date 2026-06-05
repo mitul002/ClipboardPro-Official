@@ -67,6 +67,7 @@ namespace ClipboardPro.Services
 
         // ── State ─────────────────────────────────────────────────────────────
         private readonly System.Text.StringBuilder _buffer = new(256);
+        private readonly object _bufferLock = new();
         private Dictionary<string, string> _lookup = new(StringComparer.Ordinal);
         private bool _enabled  = false;
         private bool _disposed = false;
@@ -84,16 +85,12 @@ namespace ClipboardPro.Services
         private volatile bool _suppressHook = false;
 
         // ── Persistence ───────────────────────────────────────────────────────
-        private readonly string _dataPath;
+        private readonly StorageService _storage;
         public List<SnippetItem> Snippets { get; private set; } = new();
 
-        public TextExpanderService()
+        public TextExpanderService(StorageService storage)
         {
-            var dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "ClipboardPro");
-            Directory.CreateDirectory(dir);
-            _dataPath = Path.Combine(dir, "snippets.json");
+            _storage = storage;
             Load();
         }
 
@@ -120,7 +117,7 @@ namespace ClipboardPro.Services
             if (_hookId == IntPtr.Zero) return;
             UnhookWindowsHookEx(_hookId);
             _hookId = IntPtr.Zero;
-            _buffer.Clear();
+            lock (_bufferLock) { _buffer.Clear(); }
             ClearUndoState();
         }
 
@@ -180,26 +177,29 @@ namespace ClipboardPro.Services
                     // ── Normal key handling ──────────────────────────────────────
                     if (key == Key.Back)
                     {
-                        if (_buffer.Length > 0) _buffer.Length--;
+                        lock (_bufferLock) { if (_buffer.Length > 0) _buffer.Length--; }
                     }
                     else if (key == Key.Escape)
                     {
-                        _buffer.Clear();
+                        lock (_bufferLock) { _buffer.Clear(); }
                     }
                     else if (key == Key.Space || key == Key.Enter || key == Key.Tab)
                     {
                         // Terminator keys — check buffer then clear
                         CheckAndExpand();
-                        _buffer.Clear();
+                        lock (_bufferLock) { _buffer.Clear(); }
                     }
                     else
                     {
                         string? ch = GetCharFromKey((uint)vkCode, (uint)scanCode);
                         if (ch != null)
                         {
-                            _buffer.Append(ch);
-                            // Safety cap
-                            if (_buffer.Length > 64) _buffer.Remove(0, _buffer.Length - 64);
+                            lock (_bufferLock)
+                            {
+                                _buffer.Append(ch);
+                                // Safety cap
+                                if (_buffer.Length > 64) _buffer.Remove(0, _buffer.Length - 64);
+                            }
                             // Inline check (no-terminator triggers like "mail/")
                             CheckAndExpand();
                         }
@@ -213,7 +213,8 @@ namespace ClipboardPro.Services
         private void CheckAndExpand()
         {
             if (_expansionInProgress) return;
-            string typed = _buffer.ToString();
+            string typed;
+            lock (_bufferLock) { typed = _buffer.ToString(); }
             if (string.IsNullOrEmpty(typed)) return;
 
             foreach (var kv in _lookup)
@@ -222,7 +223,7 @@ namespace ClipboardPro.Services
                 {
                     string capKey   = kv.Key;
                     string capValue = kv.Value;
-                    _buffer.Clear();
+                    lock (_bufferLock) { _buffer.Clear(); }
 
                     // Dispatch to UI thread (STA, clipboard access allowed)
                     System.Windows.Application.Current?.Dispatcher?.BeginInvoke(
@@ -358,8 +359,11 @@ namespace ClipboardPro.Services
                 _suppressHook = false;
 
                 // 4. Seed buffer with restored trigger so typing continues naturally
-                _buffer.Clear();
-                _buffer.Append(cleanTrigger);
+                lock (_bufferLock)
+                {
+                    _buffer.Clear();
+                    _buffer.Append(cleanTrigger);
+                }
 
                 // 5. Restore clipboard
                 if (prevClip != null)
@@ -449,21 +453,21 @@ namespace ClipboardPro.Services
                 Snippets.Insert(0, snippet);
 
             RebuildLookup();
-            Save();
+            _storage.SaveSnippet(snippet);
         }
 
         public void Delete(SnippetItem snippet)
         {
             Snippets.Remove(snippet);
             RebuildLookup();
-            Save();
+            _storage.DeleteSnippet(snippet);
         }
 
         public void ClearAll()
         {
             Snippets.Clear();
             RebuildLookup();
-            Save();
+            _storage.ClearAllSnippets();
         }
 
         private void RebuildLookup()
@@ -476,23 +480,14 @@ namespace ClipboardPro.Services
         // ── Persistence ───────────────────────────────────────────────────────
         public void Save()
         {
-            try
-            {
-                var json = JsonConvert.SerializeObject(Snippets, Formatting.Indented);
-                File.WriteAllText(_dataPath, json);
-            }
-            catch { }
+            _storage.SaveSnippets(Snippets);
         }
 
         public void Load()
         {
             try
             {
-                if (File.Exists(_dataPath))
-                {
-                    var json = File.ReadAllText(_dataPath);
-                    Snippets = JsonConvert.DeserializeObject<List<SnippetItem>>(json) ?? new();
-                }
+                Snippets = _storage.LoadSnippets();
             }
             catch { Snippets = new(); }
             RebuildLookup();

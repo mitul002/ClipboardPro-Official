@@ -56,6 +56,14 @@ namespace ClipboardPro.Helpers
             {
                 if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
                 {
+                    if (e.OriginalSource is DependencyObject src)
+                    {
+                        var parentButton = FindParent<Button>(src);
+                        if (parentButton != null) return;
+                        var parentCheckbox = FindParent<System.Windows.Controls.CheckBox>(src);
+                        if (parentCheckbox != null) return;
+                    }
+
                     DataObject dragData = new DataObject();
                     if (selectedPaths != null && selectedPaths.Contains(path))
                     {
@@ -284,6 +292,14 @@ namespace ClipboardPro.Helpers
             btn.Content = tb;
             return btn;
         }
+
+        public static T FindParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            DependencyObject parentObject = VisualTreeHelper.GetParent(child);
+            if (parentObject == null) return null;
+            if (parentObject is T parent) return parent;
+            return FindParent<T>(parentObject);
+        }
     }
 
     public class LassoSelectionHelper
@@ -314,9 +330,20 @@ namespace ClipboardPro.Helpers
         {
             if (e.OriginalSource is DependencyObject src)
             {
-                var parentCard = FindParent<Border>(src);
-                if (parentCard != null && parentCard.Tag is string) return;
-                var scrollBar = FindParent<System.Windows.Controls.Primitives.ScrollBar>(src);
+                var current = src;
+                bool isInsideCard = false;
+                while (current != null)
+                {
+                    if (current is Border b && b.Tag is string)
+                    {
+                        isInsideCard = true;
+                        break;
+                    }
+                    current = VisualTreeHelper.GetParent(current);
+                }
+                if (isInsideCard) return;
+
+                var scrollBar = UIHelper.FindParent<System.Windows.Controls.Primitives.ScrollBar>(src);
                 if (scrollBar != null) return;
             }
 
@@ -400,14 +427,6 @@ namespace ClipboardPro.Helpers
                     }
                 }
             }
-        }
-
-        private static T FindParent<T>(DependencyObject child) where T : DependencyObject
-        {
-            DependencyObject parentObject = VisualTreeHelper.GetParent(child);
-            if (parentObject == null) return null;
-            if (parentObject is T parent) return parent;
-            return FindParent<T>(parentObject);
         }
     }
 }

@@ -49,7 +49,7 @@
                             </Border>
                         </Button>
 
-                        <Button x:Name="BtnSettings" Style="{StaticResource SidebarNavButton}" Foreground="{DynamicResource TextSecondary}" Click="BtnSettings_Click">
+                        <Button x:Name="BtnSettings" Style="{StaticResource SidebarNavButton}" Click="BtnSettings_Click">
 
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,12,0" VerticalAlignment="Center"/>
@@ -223,8 +223,7 @@
                             </Button>
 
                             <Button x:Name="BtnAddCategory" Click="BtnAddCategory_Click"
-                                    Style="{StaticResource SidebarNavButton}"
-                                    Foreground="{DynamicResource AccentLight}">
+                                    Style="{StaticResource AddCategoryButtonStyle}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="14" Margin="0,0,12,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="Add Category" VerticalAlignment="Center"/>
@@ -250,6 +249,11 @@
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
                                                             <Setter Property="Foreground" Value="{Binding Color}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsPressed, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                                                    <Setter Property="Foreground" Value="White"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
                                                         </Style>
                                                     </TextBlock.Style>
                                                 </TextBlock>
@@ -285,7 +289,17 @@
                     <StackPanel WindowChrome.IsHitTestVisibleInChrome="True" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,8,0">
                         <!-- Theme Toggle (Sun/Moon) -->
                         <Button x:Name="BtnThemeToggle" Style="{StaticResource IconButtonStyle}" Click="BtnThemeToggle_Click" Width="34" Height="34">
-                            <TextBlock x:Name="TxtThemeIcon" Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
+                            <TextBlock x:Name="TxtThemeIcon" Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="14">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsPressed, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                         </Button>
 
                         <!-- Quick Paste Bar Toggle -->
@@ -300,6 +314,9 @@
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding Settings.EnableQuickPasteBar}" Value="True">
                                                 <Setter Property="Foreground" Value="#f1c40f"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsPressed, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                                <Setter Property="Foreground" Value="White"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -347,8 +364,38 @@
                         <!-- LEFT SIDE: Search & Sort -->
                         <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
                             <Border Width="250" Margin="0,0,10,0">
-                                <TextBox Style="{StaticResource SearchBox}" Height="40"
-                                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                                <Grid>
+                                    <TextBox Style="{StaticResource SearchBox}" Height="40"
+                                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <Grid Width="16" Height="16" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0"
+                                          Visibility="{Binding IsSearchLoading, Converter={StaticResource BoolToVisibility}}"
+                                          RenderTransformOrigin="0.5, 0.5">
+                                        <Grid.RenderTransform>
+                                            <RotateTransform />
+                                        </Grid.RenderTransform>
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsVisible" Value="True">
+                                                        <Trigger.EnterActions>
+                                                            <BeginStoryboard Name="Spin">
+                                                                <Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                                                     From="0" To="360" Duration="0:0:1" RepeatBehavior="Forever"/>
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </Trigger.EnterActions>
+                                                        <Trigger.ExitActions>
+                                                            <StopStoryboard BeginStoryboardName="Spin"/>
+                                                        </Trigger.ExitActions>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <Path Stroke="{DynamicResource AccentPrimary}" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                              Data="M 8,1 A 7,7 0 1 1 1,8" />
+                                    </Grid>
+                                </Grid>
                             </Border>
 
                             <ComboBox x:Name="CmbSort" Style="{StaticResource DarkComboBox}" Height="40" Width="120" Margin="0,0,10,0" SelectionChanged="CmbSort_SelectionChanged">
@@ -370,20 +417,32 @@
                                 </StackPanel>
                             </Border>
 
-                            <Button Content="&#xE72C;" FontFamily="Segoe MDL2 Assets" ToolTip="Refresh List"
-                                    Style="{StaticResource IconButtonStyle}"
-                                    Foreground="{DynamicResource AccentPrimary}"
-                                    Width="40" Height="40" Margin="0,0,10,0" Click="BtnRefresh_Click"/>
+                            <Button x:Name="BtnRefresh" Content="&#xE72C;" FontFamily="Segoe MDL2 Assets" ToolTip="Refresh List"
+                                    Width="40" Height="40" Margin="0,0,10,0" Click="BtnRefresh_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
 
-                            <Button Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" ToolTip="Clear All History"
-                                    Style="{StaticResource IconButtonStyle}"
-                                    Foreground="{DynamicResource DangerBrush}"
-                                    Width="40" Height="40" Click="BtnClearAll_Click"/>
+                            <Button x:Name="BtnClearAll" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" ToolTip="Clear All History"
+                                    Width="40" Height="40" Click="BtnClearAll_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
 
-                            <Button Content="&#xEC26;" FontFamily="Segoe MDL2 Assets" ToolTip="Local File Share"
-                                    Style="{StaticResource IconButtonStyle}"
-                                    Foreground="{DynamicResource AccentPrimary}"
-                                    Width="40" Height="40" Margin="10,0,0,0" Click="BtnShare_Click"/>
+                            <Button x:Name="BtnShareAction" Content="&#xEC26;" FontFamily="Segoe MDL2 Assets" ToolTip="Local File Share"
+                                    Width="40" Height="40" Margin="10,0,0,0" Click="BtnShare_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </StackPanel>
 
                         <!-- MIDDLE: Filters (Date, Type) -->
@@ -609,7 +668,7 @@
                              Padding="0,0,4,0">
                         <ListBox.Template>
                             <ControlTemplate TargetType="ListBox">
-                                <ScrollViewer Style="{StaticResource SlimScrollViewer}">
+                                <ScrollViewer Style="{StaticResource SlimScrollViewer}" CanContentScroll="True">
                                     <ItemsPresenter/>
                                 </ScrollViewer>
                             </ControlTemplate>
@@ -824,7 +883,12 @@
                                                                         <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
                                                                             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
                                                                             <Setter Property="Content" Value="&#xE724;"/>
-                                                                            <Setter Property="Foreground" Value="{Binding SendingBrush}"/>
+                                                                            <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding IsSending}" Value="True">
+                                                                                    <Setter Property="Foreground" Value="{Binding SendingBrush}"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
                                                                         </Style>
                                                                     </Button.Style>
                                                                 </Button>
@@ -998,7 +1062,12 @@
                                                                     <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
                                                                         <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
                                                                         <Setter Property="Content" Value="&#xE724;"/>
-                                                                        <Setter Property="Foreground" Value="{Binding SendingBrush}"/>
+                                                                        <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsSending}" Value="True">
+                                                                                <Setter Property="Foreground" Value="{Binding SendingBrush}"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
                                                                     </Style>
                                                                 </Button.Style>
                                                             </Button>

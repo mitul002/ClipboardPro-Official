@@ -81,6 +81,7 @@
             <Style x:Key="SlimScrollViewer" TargetType="ScrollViewer">
                 <Setter Property="h:SmoothScrollHelper.IsSmoothScrollEnabled" Value="True"/>
                 <Setter Property="PanningMode" Value="Both"/>
+                <Setter Property="CanContentScroll" Value="True"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="ScrollViewer">
@@ -148,15 +149,16 @@
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="Bd" Background="{TemplateBinding Background}"
                                     CornerRadius="8" Padding="4">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <ContentPresenter x:Name="Cp" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgCardHover}"/>
+                                    <Setter TargetName="Cp" Property="TextElement.Foreground" Value="{DynamicResource AccentPrimary}"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentSecondary}"/>
-                                    <Setter Property="Foreground" Value="White"/>
+                                    <Setter TargetName="Cp" Property="TextElement.Foreground" Value="White"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -177,17 +179,24 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="ToggleButton">
                             <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
                                     CornerRadius="6" Padding="4">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <ContentPresenter x:Name="Cp" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsChecked" Value="True">
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentPrimary}"/>
-                                    <Setter Property="Foreground" Value="White"/>
+                                    <Setter TargetName="Cp" Property="TextElement.Foreground" Value="White"/>
                                 </Trigger>
-                                <Trigger Property="IsMouseOver" Value="True">
+                                <MultiTrigger>
+                                    <MultiTrigger.Conditions>
+                                        <Condition Property="IsChecked" Value="False"/>
+                                        <Condition Property="IsMouseOver" Value="True"/>
+                                    </MultiTrigger.Conditions>
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgCardHover}"/>
-                                </Trigger>
+                                    <Setter TargetName="Cp" Property="TextElement.Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                </MultiTrigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
@@ -209,8 +218,9 @@
                             <Grid Margin="0,1">
                                 <Border x:Name="Bd" Background="{TemplateBinding Background}"
                                         CornerRadius="10">
-                                    <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"
-                                                      Margin="{TemplateBinding Padding}"/>
+                                    <ContentPresenter x:Name="Presenter" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                      Margin="{TemplateBinding Padding}"
+                                                      TextElement.Foreground="{TemplateBinding Foreground}"/>
                                 </Border>
                                 <Rectangle x:Name="Indicator" Width="4" Height="18" HorizontalAlignment="Left" 
                                            VerticalAlignment="Center" Fill="{DynamicResource AccentPrimary}" 
@@ -227,20 +237,75 @@
                                     </DataTrigger.Binding>
                                     <Setter TargetName="Indicator" Property="Visibility" Value="Visible"/>
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BadgeBg}"/>
-                                    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
                                     <Setter Property="TextElement.FontWeight" Value="SemiBold"/>
                                 </DataTrigger>
 
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgCardHover}"/>
-                                    <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentPrimary}"/>
-                                    <Setter Property="TextElement.Foreground" Value="White"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                     <Setter Property="Opacity" Value="0.8"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="ThemeToggleButton" TargetType="Button">
+                <Setter Property="Width"            Value="36"/>
+                <Setter Property="Height"           Value="36"/>
+                <Setter Property="Background"       Value="Transparent"/>
+                <Setter Property="Foreground"       Value="{DynamicResource TextSecondary}"/>
+                <Setter Property="BorderThickness"  Value="0"/>
+                <Setter Property="FontSize"         Value="14"/>
+                <Setter Property="FontFamily"       Value="Segoe MDL2 Assets"/>
+                <Setter Property="Cursor"           Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    CornerRadius="8" Padding="4">
+                                <ContentPresenter x:Name="Cp" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgCardHover}"/>
+                                    <Setter TargetName="Cp" Property="TextElement.Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentPrimary}"/>
+                                    <Setter TargetName="Cp" Property="TextElement.Foreground" Value="White"/>
+                                </Trigger>
+                                </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="AddCategoryButtonStyle" TargetType="Button" BasedOn="{StaticResource SidebarNavButton}">
+                <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="10">
+                                <ContentPresenter x:Name="Cp" HorizontalAlignment="Left" VerticalAlignment="Center" 
+                                                  Margin="{TemplateBinding Padding}"
+                                                  TextElement.Foreground="{TemplateBinding Foreground}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgCardHover}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentPrimary}"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Trigger>
+                                </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>
@@ -538,11 +603,13 @@
                             <Setter Property="FontSize"    Value="13"/>
                             <Style.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource BgCardHover}"/>
+                                    <Setter Property="Background" Value="{DynamicResource BadgeBg}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
                                 </Trigger>
                                 <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="{DynamicResource AccentPrimary}"/>
-                                    <Setter Property="Foreground" Value="White"/>
+                                    <Setter Property="Background" Value="{DynamicResource BadgeBg}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentPrimary}"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>

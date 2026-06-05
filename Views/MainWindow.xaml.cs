@@ -43,9 +43,30 @@ namespace ClipboardPro.Views
                 var listBox = FindVisualChild<System.Windows.Controls.ListBox>(this);
                 if (listBox != null) Helpers.ScrollAnimationHelper.ApplyScrollEffects(listBox);
                 AnimateRestore();
+                UpdateActiveFilterUI();
             };
 
+            _vm.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(MainViewModel.ActiveFilter))
+                {
+                    UpdateActiveFilterUI();
+                }
+            };
+        }
 
+        private void UpdateActiveFilterUI()
+        {
+            if (_vm.ActiveFilter == "Snippets")
+            {
+                PanelSnippets.Visibility = System.Windows.Visibility.Visible;
+                MainListBox.Visibility = System.Windows.Visibility.Collapsed;
+            }
+            else
+            {
+                PanelSnippets.Visibility = System.Windows.Visibility.Collapsed;
+                MainListBox.Visibility = System.Windows.Visibility.Visible;
+            }
         }
 
         public void UpdateHotkeys()
@@ -311,23 +332,7 @@ namespace ClipboardPro.Views
             {
                 string filter = btn.Tag.ToString() ?? "All Items";
 
-                // ── Snippets view toggle ──────────────────────────────────────
-                if (filter == "Snippets")
-                {
-                    bool isSnippets = (PanelSnippets.Visibility == System.Windows.Visibility.Visible);
-                    PanelSnippets.Visibility = System.Windows.Visibility.Visible;
-                    MainListBox.Visibility   = System.Windows.Visibility.Collapsed;
-                    TxtPageTitle.Text        = "Text Expander Snippets";
-                    _vm.ActiveFilter         = "Snippets";
-                    return;
-                }
-
-                // ── Regular clipboard navigation ───────────────────────────────
-                PanelSnippets.Visibility = System.Windows.Visibility.Collapsed;
-                MainListBox.Visibility   = System.Windows.Visibility.Visible;
-                TxtPageTitle.Text        = filter.StartsWith("cat:") ? filter.Substring(4) : filter;
-
-                if (!filter.StartsWith("cat:") && !new[] { "All Items", "Favorites", "Pinned", "URL", "Email", "Code", "Phone", "Image", "Color", "Path", "Directory", "Private" }.Contains(filter))
+                if (!filter.StartsWith("cat:") && !new[] { "All Items", "Favorites", "Pinned", "Snippets", "URL", "Email", "Code", "Phone", "Image", "Color", "Path", "Directory", "Private" }.Contains(filter))
                 {
                     if (_vm.Settings.CustomCategories.Any(c => c.Name == filter))
                         filter = "cat:" + filter;
@@ -392,19 +397,43 @@ namespace ClipboardPro.Views
 
         private void BtnShare_Click(object sender, RoutedEventArgs e)
         {
-            if (_shareWindow == null)
+            if (_shareWindow != null && _shareWindow.IsVisible)
             {
-                _shareWindow = new ShareWindow(_vm);
-            }
-            
-            if (_shareWindow.IsVisible)
-            {
-                _shareWindow.Activate();
+                _shareWindow.Close();
+                _shareWindow = null;
+                UpdateShareButtonVisual(false);
             }
             else
             {
+                if (_shareWindow == null)
+                {
+                    _shareWindow = new ShareWindow(_vm);
+                    _shareWindow.Closed += (s, ev) => 
+                    {
+                        _shareWindow = null;
+                        UpdateShareButtonVisual(false);
+                    };
+                }
                 _shareWindow.Show();
                 _shareWindow.Activate();
+                UpdateShareButtonVisual(true);
+            }
+        }
+
+        private void UpdateShareButtonVisual(bool isActive)
+        {
+            if (BtnShareAction != null)
+            {
+                if (isActive)
+                {
+                    BtnShareAction.Background = (System.Windows.Media.Brush)FindResource("AccentPrimary");
+                    BtnShareAction.Foreground = System.Windows.Media.Brushes.White;
+                }
+                else
+                {
+                    BtnShareAction.ClearValue(System.Windows.Controls.Control.BackgroundProperty);
+                    BtnShareAction.Foreground = (System.Windows.Media.Brush)FindResource("AccentPrimary");
+                }
             }
         }
 
@@ -432,11 +461,12 @@ namespace ClipboardPro.Views
                 "Path"      => "Clear all non-pinned files?",
                 "Directory" => "Clear all non-pinned directories?",
                 "Private"   => "Clear all non-pinned private items?",
-                "Favorites" => "Clear all non-pinned favorites?",
-                _ => _vm.ActiveFilter.StartsWith("cat:") 
-                    ? $"Clear all items in category '{_vm.ActiveFilter.Substring(4)}'?" 
+                "Favorites" => "Clear all items from your favorites?",
+                "Pinned"    => "Clear all pinned items?",
+                _ => _vm.ActiveFilter.StartsWith("cat:")
+                    ? $"Clear all items in category '{_vm.ActiveFilter.Substring(4)}'?"
                     : "Clear all non-pinned items?"
-            };
+                };
 
             if (WpfMsgBox.Show(msg, "Clear History", WpfMsgBoxBtn.YesNo) == WpfMsgBoxResult.Yes)
             {
@@ -713,7 +743,7 @@ namespace ClipboardPro.Views
                         // Skip if we are already viewing this category or it's already assigned
                         if (activeFilter == "cat:" + cat.Name || activeFilter == cat.Name || item.Category == cat.Name) continue;
                         
-                        AddMenuItem(menu, cat.Icon, cat.Name, cat.Color, () => { 
+                        AddMenuItem(menu, cat.Icon, "Add to " + cat.Name, cat.Color, () => { 
                             item.IsSensitive = false;
                             _vm.UpdateItemCategory(item, cat.Name); 
                         });

@@ -51,7 +51,7 @@ namespace ClipboardPro
             };
         }
 
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             _appMutex = new System.Threading.Mutex(true, "ClipboardPro_Mutex_Global", out bool createdNew);
             if (!createdNew)
@@ -87,11 +87,8 @@ namespace ClipboardPro
                 var license = new LicenseService();
                 var licStatus = license.GetLicenseStatus();
 
-                bool appAllowed = license.IsAppAllowed();
-
-                // If offline grace period expired, treat as not allowed (requires online re-verify)
-                if (licStatus.OfflineExpired)
-                    appAllowed = false;
+                // Derive appAllowed directly from licStatus (avoids a duplicate GetLicenseStatus() call)
+                bool appAllowed = (licStatus.IsLicensed || !licStatus.TrialExpired) && !licStatus.OfflineExpired;
 
                 if (appAllowed)
                 {
@@ -133,6 +130,9 @@ namespace ClipboardPro
 
                 ApplyTheme(_vm.Settings);
 
+                // Wait for all data to load from disk before creating/showing the window
+                await _vm.InitializeAsync();
+
                 _mainWindow = new MainWindow(_vm, _monitor, _hotkeys);
 
                 // Start monitor IMMEDIATELY after window creation to ensure no SS missed during launch
@@ -158,7 +158,9 @@ namespace ClipboardPro
                 _hotkeys.OnMiniModeHotkey += ShowMiniMode;
                 _hotkeys.OnQuickPasteBarHotkey += () => _mainWindow?.ToggleQuickPasteBar();
 
-                _vm.Settings.PropertyChanged += (s, ev) => {
+                AppSettings currentSettings = _vm.Settings;
+
+                System.ComponentModel.PropertyChangedEventHandler settingsHandler = (s, ev) => {
                     if (ev.PropertyName == nameof(AppSettings.QuickDropAction))
                     {
                         Dispatcher.BeginInvoke(new Action(UpdateQuickDropState));
@@ -169,9 +171,34 @@ namespace ClipboardPro
                     }
                 };
 
-                // Initialize Text Expander service
-                TextExpander = new TextExpanderService();
-                if (_vm.Settings.EnableTextExpander) TextExpander.SetEnabled(true);
+                if (currentSettings != null)
+                {
+                    currentSettings.PropertyChanged += settingsHandler;
+                }
+
+                _vm.PropertyChanged += (s, ev) => {
+                    if (ev.PropertyName == nameof(MainViewModel.Settings))
+                    {
+                        // Settings object replaced (e.g. Reset), reattach handler
+                        if (currentSettings != null)
+                        {
+                            currentSettings.PropertyChanged -= settingsHandler;
+                        }
+                        currentSettings = _vm.Settings;
+                        if (currentSettings != null)
+                        {
+                            currentSettings.PropertyChanged += settingsHandler;
+                        }
+                        
+                        // Force update states
+                        Dispatcher.BeginInvoke(new Action(UpdateQuickDropState));
+                        TextExpander?.SetEnabled(currentSettings?.EnableTextExpander ?? false);
+                    }
+                };
+
+                // TextExpander is initialized AFTER the window shows (deferred)
+                // so it doesn't block the cold-boot rendering path.
+                // See: StartDeferredServices() below.
 
                 try { SetupTrayIcon(); } catch { /* Ignore tray errors for now to allow app to start */ }
 
@@ -187,6 +214,9 @@ namespace ClipboardPro
 
                 if (startInShareMode)
                 {
+                    // Share mode: start network immediately so devices are visible right away
+                    _vm.EnsureNetworkStarted();
+
                     _mainWindow.Hide();
                     _mainWindow.ShowInTaskbar = false;
                     _mainWindow.WindowState = WindowState.Minimized;
@@ -200,11 +230,15 @@ namespace ClipboardPro
                     _mainWindow.Hide();
                     _mainWindow.WindowState = WindowState.Minimized;
                     _mainWindow.ShowInTaskbar = false;
+                    // Defer services — user is not actively watching the screen
+                    StartDeferredServices();
                 }
                 else
                 {
                     _mainWindow.Show();
                     _mainWindow.Activate();
+                    // Defer network + text expander + maintenance after UI is visible
+                    StartDeferredServices();
                 }
             }
             catch (Exception ex)
@@ -212,6 +246,38 @@ namespace ClipboardPro
                 System.IO.File.WriteAllText(@"D:\SAAS PROJECTS\ClipboardPro\error.txt", ex.ToString());
                 Shutdown();
             }
+        }
+
+        // ── Deferred Services: called once window is shown or minimized ──────
+        // Network + TextExpander start after a short delay so the first frame
+        // paints immediately. Maintenance runs 10 s later.
+        private void StartDeferredServices()
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(1500); // Allow UI to paint first
+
+                    // Start network service (LAN discovery & receiving)
+                    _vm?.EnsureNetworkStarted();
+
+                    // Initialize TextExpander
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        if (TextExpander == null && _storage != null)
+                        {
+                            TextExpander = new TextExpanderService(_storage);
+                            if (_vm?.Settings.EnableTextExpander == true)
+                                TextExpander.SetEnabled(true);
+                        }
+                    });
+
+                    // Deferred orphaned-image maintenance (10s total from app start)
+                    _vm?.StartDeferredMaintenance();
+                }
+                catch { }
+            });
         }
 
         private void OnComboBoxPreviewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -245,7 +311,9 @@ namespace ClipboardPro
         }
 
         private QuickDropWindow? _quickDrop;
-        private void UpdateQuickDropState()
+        public ClipboardMonitorService? GetMonitor() => _monitor;
+
+        public void UpdateQuickDropState()
         {
             if (_vm != null && _vm.Settings.QuickDropAction > 0)
             {
@@ -296,6 +364,8 @@ namespace ClipboardPro
             }
             else
             {
+                // Ensure network is started before showing share window
+                _vm?.EnsureNetworkStarted();
                 _shareWindow = new ShareWindow(_vm!);
                 _shareWindow.Show();
                 _shareWindow.Activate();
@@ -463,7 +533,8 @@ namespace ClipboardPro
                     ToggleMainWindow();
                     break;
                 case "SHARE":
-                    // Only show share window, don't restore main if hidden
+                    // Ensure network is started before opening share window
+                    _vm?.EnsureNetworkStarted();
                     var shareWin = new ShareWindow(_vm!);
                     shareWin.Show();
                     shareWin.Activate();

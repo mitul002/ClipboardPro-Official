@@ -3,7 +3,7 @@
 ; Optimized for Cross Tech || Magnetieght EU
 
 #define AppName "ClipboardPro"
-#define AppVersion "1.3.0"
+#define AppVersion "1.4.0"
 #define AppPublisher "Cross Tech"
 #define AppDeveloper "Magnetieght EU"
 #define AppURL "https://github.com/mitul002"

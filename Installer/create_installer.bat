@@ -16,10 +16,9 @@ mkdir Publish
 if exist "!ROOT_DIR!\bin" rd /s /q "!ROOT_DIR!\bin"
 if exist "!ROOT_DIR!\obj" rd /s /q "!ROOT_DIR!\obj"
 
-echo [2/4] Publishing ClipboardPro (Self-Contained)...
+echo [2/4] Publishing ClipboardPro (Size Optimized)...
 cd /d "!ROOT_DIR!"
-dotnet build ClipboardPro.csproj -c Release
-dotnet publish ClipboardPro.csproj -c Release -r win-x64 --self-contained true -o "!INSTALLER_DIR!\Publish" -p:PublishSingleFile=false -p:DebugType=none -p:DebugSymbols=false -p:UseSharedCompilation=false /nodeReuse:false
+dotnet publish ClipboardPro.csproj -c Release -r win-x64 --self-contained true -o "!INSTALLER_DIR!\Publish" -p:PublishSingleFile=false -p:OptimizationPreference=Size -p:EventSourceSupport=false -p:UseSystemResourceKeys=true -p:HttpActivityPropagationSupport=false -p:EnableUnsafeBinaryFormatterSerialization=false -p:MetadataUpdaterSupport=false -p:DebugType=none -p:DebugSymbols=false -p:UseSharedCompilation=false /nodeReuse:false
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
@@ -59,7 +58,7 @@ if not exist !ISCC! (
 )
 
 echo [4/4] Compiling Installer...
-!ISCC! clipboardpro_installer.iss
+!ISCC! "clipboardpro_standalone_installer .iss"
 
 if %ERRORLEVEL% NEQ 0 (
     echo.

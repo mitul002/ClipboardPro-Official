@@ -281,6 +281,7 @@ namespace ClipboardPro.Views
             {
                 _vm.ResetSettings();
                 LoadSettings();
+                SaveCurrentSettings();
                 if (sender is FrameworkElement fe) ShowFeedback(fe, "Settings Reset!", (System.Windows.Media.Brush)FindResource("SuccessBrush"));
             }
         }
@@ -291,6 +292,7 @@ namespace ClipboardPro.Views
             {
                 _vm.ResetTotalApp();
                 LoadSettings();
+                SaveCurrentSettings();
                 WpfMsgBox.Show("Application has been reset to factory defaults.", "Reset Complete", WpfMsgBoxBtn.OK, WpfMsgBoxImg.Information);
             }
         }
@@ -302,6 +304,7 @@ namespace ClipboardPro.Views
             {
                 _vm.ImportZip(dialog.FileName);
                 LoadSettings(); // Reload in case settings were imported
+                SaveCurrentSettings(); // Apply theme and UI states immediately
             }
         }
 

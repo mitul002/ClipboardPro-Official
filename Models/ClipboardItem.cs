@@ -1,4 +1,7 @@
 using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Windows.Media;
 
 namespace ClipboardPro.Models
 {
@@ -22,8 +25,19 @@ namespace ClipboardPro.Models
         Cancel
     }
 
-    public class ClipboardItem : System.ComponentModel.INotifyPropertyChanged
+    public class ClipboardItem : INotifyPropertyChanged
     {
+        private static readonly SolidColorBrush _sendingGreen = CreateFrozenBrush(39, 174, 96);
+        private static readonly SolidColorBrush _sendingBlue = CreateFrozenBrush(52, 152, 219);
+        private static readonly SolidColorBrush _fallbackGray = CreateFrozenBrush(128, 128, 128);
+
+        private static SolidColorBrush CreateFrozenBrush(byte r, byte g, byte b)
+        {
+            var brush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
+            brush.Freeze();
+            return brush;
+        }
+
         private bool _isPinned;
         private bool _isFavorite;
 
@@ -47,6 +61,9 @@ namespace ClipboardPro.Models
             get => _imagePath; 
             set { _imagePath = value; OnPropertyChanged(); } 
         }
+
+        public string? ImageHash { get; set; }
+
         [Newtonsoft.Json.JsonIgnore]
         public string? ThumbnailBase64 { get; set; }
         public ClipboardItemType Type { get; set; } = ClipboardItemType.Text;
@@ -187,13 +204,20 @@ namespace ClipboardPro.Models
             set { _isPaused = value; OnPropertyChanged(); OnPropertyChanged(nameof(SendingBrush)); }
         }
 
-        public System.Windows.Media.Brush SendingBrush => IsSending 
-            ? (SendingPercentage >= 100 ? (System.Windows.Media.Brush)new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(39, 174, 96)) // Green
-                                       : (System.Windows.Media.Brush)new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(52, 152, 219))) // Blue
-            : (System.Windows.Media.Brush)System.Windows.Application.Current.FindResource("TextMuted");
+        public System.Windows.Media.Brush SendingBrush 
+        {
+            get
+            {
+                if (IsSending)
+                {
+                    return SendingPercentage >= 100 ? _sendingGreen : _sendingBlue;
+                }
+                return _fallbackGray;
+            }
+        }
 
-        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
         protected virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
-            => PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

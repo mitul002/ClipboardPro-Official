@@ -17,9 +17,12 @@ namespace ClipboardPro.ViewModels
 {
     public class CategoryInfo : INotifyPropertyChanged
     {
-        public string Name { get; set; } = string.Empty;
-        public string Color { get; set; } = "#3498db";
-        public string Icon { get; set; } = "\uE8EC";
+        private string _name = string.Empty;
+        public string Name { get => _name; set { _name = value; OnPropertyChanged(); } }
+        private string _color = "#3498db";
+        public string Color { get => _color; set { _color = value; OnPropertyChanged(); } }
+        private string _icon = "\uE8EC";
+        public string Icon { get => _icon; set { _icon = value; OnPropertyChanged(); } }
         private int _count;
         public int Count { get => _count; set { _count = value; OnPropertyChanged(); } }
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -33,6 +36,7 @@ namespace ClipboardPro.ViewModels
             public List<ClipboardItem> Items { get; set; } = new();
             public bool IsSingle { get; set; }
             public int Index { get; set; }
+            public int FilteredIndex { get; set; }
             public CategoryData? Category { get; set; }
             public List<ClipboardItem>? CategoryItems { get; set; }
             public DateTime Expiration { get; set; }
@@ -68,6 +72,7 @@ namespace ClipboardPro.ViewModels
         private string _dateFilter = "All Dates";
         private string _typeFilter = "All Types";
         private bool _isGridView = false;
+        private System.Threading.CancellationTokenSource? _searchDebounceToken;
 
         private ObservableCollection<ClipboardItem> _filteredItems = new();
         public ObservableCollection<ClipboardItem> FilteredItems { get => _filteredItems; set { _filteredItems = value; OnPropertyChanged(); } }
@@ -110,9 +115,11 @@ namespace ClipboardPro.ViewModels
             }
         }
         private System.Windows.Threading.Dispatcher Dispatcher => System.Windows.Application.Current.Dispatcher;
+        private bool _isBatchUpdating = false;
         private bool _isUndoMonitorRunning = false;
         private readonly object _undoLock = new();
         private bool _isUndoVisible;
+        private bool _isInitializing = true;
         public bool IsUndoVisible { get => _isUndoVisible; set { _isUndoVisible = value; OnPropertyChanged(); } }
 
         private void CustomCategory_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e) => UpdateCategoryCounts();
@@ -126,8 +133,56 @@ namespace ClipboardPro.ViewModels
             Settings = _storage.LoadSettings();
             _network.OnItemReceived += OnNetworkItemReceived;
             _network.OnPeersUpdated += peers => { Dispatcher.Invoke(() => { ActivePeers.Clear(); foreach (var p in peers) ActivePeers.Add(p); OnPropertyChanged(nameof(ActivePeers)); OnPropertyChanged(nameof(NearbyDevicesText)); OnPropertyChanged(nameof(NearbyDevicesCount)); }); };
+            // Network is NOT started here — deferred to after UI is shown (faster cold boot)
+        }
+
+        public async Task InitializeAsync()
+        {
+            await Task.Run(() => 
+            {
+                var loadedItems = _storage.LoadItems(); 
+                // PerformAutoMaintenance (orphaned image scan) is intentionally NOT called here.
+                // It's deferred to 10s after UI shows to avoid cold-boot slowness.
+                // It runs automatically via StartDeferredMaintenance(), or via Optimize button.
+                
+                foreach (var item in loadedItems) RegisterItemEvents(item); 
+
+                Dispatcher.Invoke(() => { 
+                    _allItems = loadedItems; 
+                    UpdateCategoryCounts(); 
+                });
+            });
+            await ApplyFilter();
+            _isInitializing = false;
+        }
+
+        // ── Deferred Maintenance: runs 10s after app shows — zero impact on UI ──
+        public void StartDeferredMaintenance()
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(10000); // Wait 10 seconds after app is shown
+                    List<ClipboardItem> snapshot;
+                    lock (_collectionLock) { snapshot = _allItems.ToList(); }
+                    _storage.PerformAutoMaintenance(snapshot);
+                }
+                catch { }
+            });
+        }
+
+        // ── On-Demand Network Start: safe to call multiple times (idempotent) ──
+        private bool _networkStarted = false;
+        private readonly object _networkLock = new();
+        public void EnsureNetworkStarted()
+        {
+            lock (_networkLock)
+            {
+                if (_networkStarted) return;
+                _networkStarted = true;
+            }
             _network.Start();
-            Task.Run(() => { var loadedItems = _storage.LoadItems(); _storage.PerformAutoMaintenance(loadedItems); Dispatcher.Invoke(() => { _allItems = loadedItems; foreach (var item in _allItems) RegisterItemEvents(item); UpdateCategoryCounts(); ApplyFilter(); }); });
         }
 
         public void UpdateCategoryCounts()
@@ -177,20 +232,71 @@ namespace ClipboardPro.ViewModels
 
         private void RegisterItemEvents(ClipboardItem item)
         {
-            item.PropertyChanged += (s, e) => { 
-                if (e.PropertyName == nameof(ClipboardItem.IsPinned) || e.PropertyName == nameof(ClipboardItem.IsFavorite)) {
-                    SaveItems(); 
+            // Unregister first to prevent double-hook leakage
+            item.PropertyChanged -= OnItemPropertyChanged;
+            item.PropertyChanged += OnItemPropertyChanged;
+        }
+
+        private void DeregisterItemEvents(ClipboardItem item)
+        {
+            item.PropertyChanged -= OnItemPropertyChanged;
+        }
+
+        private void OnItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (_isBatchUpdating) return;
+
+            if (sender is ClipboardItem item)
+            {
+                if (e.PropertyName == nameof(ClipboardItem.IsPinned) || e.PropertyName == nameof(ClipboardItem.IsFavorite) || e.PropertyName == nameof(ClipboardItem.Category) || e.PropertyName == nameof(ClipboardItem.IsSensitive)) 
+                {
+                    _storage.SaveItem(item); 
+                    UpdateCategoryCounts();
                     ApplyFilter();
-                } else if (e.PropertyName == nameof(ClipboardItem.Content)) {
-                    _storage.SaveItems(_allItems); 
+                } 
+                else if (e.PropertyName == nameof(ClipboardItem.Content)) 
+                {
+                    _storage.SaveItem(item); 
                 }
-            };
+            }
         }
 
         public string ActiveFilter { get => _activeFilter; set { _activeFilter = value; OnPropertyChanged(); OnPropertyChanged(nameof(FilterTitle)); ApplyFilter(); } }
-        public string FilterTitle => _activeFilter == "Snippets" ? "Text Expander Snippets" : (_activeFilter.StartsWith("cat:") ? _activeFilter.Substring(4) : _activeFilter);
+        public string FilterTitle
+        {
+            get
+            {
+                if (_activeFilter == "Snippets") return "Text Expander Snippets";
+                if (_activeFilter.StartsWith("cat:")) return _activeFilter.Substring(4);
+                return _activeFilter switch
+                {
+                    "Color" => "Colors",
+                    "Path" => "File Received",
+                    _ => _activeFilter
+                };
+            }
+        }
         public bool IsGridView { get => _isGridView; set { _isGridView = value; OnPropertyChanged(); } }
-        public string SearchText { get => _searchText; set { _searchText = value; OnPropertyChanged(); ApplyFilter(); } }
+        private bool _isSearchLoading;
+        public bool IsSearchLoading { get => _isSearchLoading; set { _isSearchLoading = value; OnPropertyChanged(); } }
+        public string SearchText
+        {
+            get => _searchText;
+            set
+            {
+                _searchText = value;
+                OnPropertyChanged();
+                IsSearchLoading = true;
+                // Debounce: wait 300ms after user stops typing before filtering
+                _searchDebounceToken?.Cancel();
+                var cts = new System.Threading.CancellationTokenSource();
+                _searchDebounceToken = cts;
+                Task.Delay(300, cts.Token).ContinueWith(t =>
+                {
+                    if (!t.IsCanceled) ApplyFilter();
+                }, System.Threading.Tasks.TaskScheduler.Default);
+            }
+        }
         public string SortOrder { get => _sortOrder; set { _sortOrder = value; OnPropertyChanged(); ApplyFilter(); } }
         public string DateFilter { get => _dateFilter; set { _dateFilter = value; OnPropertyChanged(); ApplyFilter(); } }
         public string TypeFilter { get => _typeFilter; set { _typeFilter = value; OnPropertyChanged(); ApplyFilter(); } }
@@ -199,12 +305,39 @@ namespace ClipboardPro.ViewModels
         {
             bool isRecentInternal = (DateTime.Now - _lastInternalCopyTime).TotalMilliseconds < 2000;
             if (_isInternalCopy || isRecentInternal) { if (item.Content == _lastInternalCopyContent) return; }
+            
+            // Bring to front logic ONLY if MergeConsecutiveDuplicates is enabled
             if (Settings.MergeConsecutiveDuplicates)
             {
                 ClipboardItem? existing = null;
-                lock (_collectionLock) { existing = _allItems.FirstOrDefault(x => x.Type == item.Type && (item.Type == ClipboardItemType.Image ? (x.ImagePath == item.ImagePath) : (x.Content == item.Content))); }
-                if (existing != null) { existing.Timestamp = item.Timestamp; lock (_collectionLock) { _allItems.Remove(existing); _allItems.Insert(0, existing); } SaveItems(); return; }
+                lock (_collectionLock) 
+                { 
+                    existing = _allItems.FirstOrDefault(x => x.Type == item.Type && 
+                        (item.Type == ClipboardItemType.Image 
+                            ? (x.ImageHash != null && x.ImageHash == item.ImageHash) 
+                            : (x.Content == item.Content))); 
+                }
+
+                if (existing != null) 
+                { 
+                    // If it's a duplicate image, we don't need the new file created by the monitor
+                    if (item.Type == ClipboardItemType.Image && !string.IsNullOrEmpty(item.ImagePath))
+                    {
+                        try { System.IO.File.Delete(_storage.GetFullImagePath(item.ImagePath)); } catch { }
+                    }
+
+                    existing.Timestamp = DateTime.Now; 
+                    lock (_collectionLock) 
+                    { 
+                        _allItems.Remove(existing); 
+                        _allItems.Insert(0, existing); 
+                    } 
+                    _storage.SaveItem(existing); 
+                    ApplyFilter();
+                    return; 
+                }
             }
+
             OffloadContent(item);
             if (item.Type != ClipboardItemType.Image) DetectSmartFeatures(item);
             lock (_collectionLock) { _allItems.Insert(0, item); }
@@ -227,7 +360,7 @@ namespace ClipboardPro.ViewModels
             {
                 ApplyFilter();
             }
-            SaveItems();
+            _storage.SaveItem(item); // Optimized single insert
         }
 
         private void DetectSmartFeatures(ClipboardItem item)
@@ -235,7 +368,7 @@ namespace ClipboardPro.ViewModels
             var text = item.Content.Trim();
             if (Settings.EnableSensitiveMasking)
             {
-                bool isCC = System.Text.RegularExpressions.Regex.IsMatch(text, @"\b(?:\d[ -]*?){13,16}\b");
+                bool isCC = System.Text.RegularExpressions.Regex.IsMatch(text, @"\b(?:\d{4}[ -]?\d{4}[ -]?\d{4}[ -]?\d{4}|\d{4}[ -]?\d{6}[ -]?\d{5}|\d{4}[ -]?\d{6}[ -]?\d{4}|\d{13,16})\b");
                 bool isAPI = System.Text.RegularExpressions.Regex.IsMatch(text, @"\b(sk|pk|ak|uk)_(?:live|test|prod)_[a-zA-Z0-9]{20,}\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase) || System.Text.RegularExpressions.Regex.IsMatch(text, @"\b(AKIA|ASIA)[0-9A-Z]{16}\b") || System.Text.RegularExpressions.Regex.IsMatch(text, @"\b(AIza[0-9A-Za-z-_]{35})\b") || System.Text.RegularExpressions.Regex.IsMatch(text, @"\b[a-fA-F0-9]{32,64}\b") || System.Text.RegularExpressions.Regex.IsMatch(text, @"\b((?:sk|pk|secret|key|auth|api|token)[-_a-zA-Z0-9]*[:=][\s]*[a-zA-Z0-9]{12,})\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                 if (isCC || isAPI)
                 {
@@ -256,20 +389,40 @@ namespace ClipboardPro.ViewModels
                         if (response.IsSuccessStatusCode) {
                             var bytes = await response.Content.ReadAsByteArrayAsync(); var html = System.Text.Encoding.UTF8.GetString(bytes);
                             var match = System.Text.RegularExpressions.Regex.Match(html, @"<title[^>]*>(.*?)</title>", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
-                            if (match.Success) { item.Title = System.Net.WebUtility.HtmlDecode(System.Text.RegularExpressions.Regex.Replace(match.Groups[1].Value, "<.*?>", string.Empty).Trim()); Dispatcher.BeginInvoke(new Action(() => { OnPropertyChanged(nameof(FilteredItems)); SaveItems(); })); }
+                            if (match.Success) { item.Title = System.Net.WebUtility.HtmlDecode(System.Text.RegularExpressions.Regex.Replace(match.Groups[1].Value, "<.*?>", string.Empty).Trim()); Dispatcher.BeginInvoke(new Action(() => { OnPropertyChanged(nameof(FilteredItems)); _storage.SaveItem(item); })); }
                         }
                     } catch { }
                 });
             }
         }
 
-        public void TogglePin(ClipboardItem item) { item.IsPinned = !item.IsPinned; SaveItems(); }
-        public void ToggleFavorite(ClipboardItem item) { item.IsFavorite = !item.IsFavorite; SaveItems(); }
-        public void ToggleMask(ClipboardItem item) { item.IsMasked = !item.IsMasked; }
+        public void TogglePin(ClipboardItem item) { item.IsPinned = !item.IsPinned; _storage.SaveItem(item); }
+        public void ToggleFavorite(ClipboardItem item) { item.IsFavorite = !item.IsFavorite; _storage.SaveItem(item); }
+        public void ToggleMask(ClipboardItem item) { item.IsMasked = !item.IsMasked; _storage.SaveItem(item); }
         public void CopyItem(ClipboardItem item) { try { _monitor.InternalCopyCooldown = DateTime.Now.AddSeconds(2); _monitor.InternalCopyContent = item.Content; if (item.Type == ClipboardItemType.Image) { var fullPath = _storage.GetFullImagePath(item.ImagePath); if (File.Exists(fullPath)) { using var img = System.Drawing.Image.FromFile(fullPath); using var bmp = new System.Drawing.Bitmap(img); System.Windows.Clipboard.SetImage(ConvertBitmap(bmp)); } } else { string content = ReloadContent(item); System.Windows.Clipboard.SetText(content); } } catch { } }
         public ClipboardItem? GetItemById(string? id) { if (string.IsNullOrEmpty(id)) return null; lock (_collectionLock) { return _allItems.FirstOrDefault(i => i.Id == id); } }
         
-        public void DeleteItem(ClipboardItem item) { var batch = new UndoBatch { IsSingle = true, Index = _allItems.IndexOf(item), Items = new List<ClipboardItem> { item }, DisplayName = "Item deleted" }; lock (_collectionLock) { _allItems.Remove(item); } PushToUndo(batch); SaveItems(); ApplyFilter(); }
+        public void DeleteItem(ClipboardItem item) 
+        { 
+            int filteredIdx = -1;
+            Dispatcher.Invoke(() => { if (FilteredItems != null) filteredIdx = FilteredItems.IndexOf(item); });
+            var batch = new UndoBatch { IsSingle = true, Index = _allItems.IndexOf(item), FilteredIndex = filteredIdx, Items = new List<ClipboardItem> { item }, DisplayName = "Item deleted" }; 
+            
+            Dispatcher.Invoke(() => {
+                if (FilteredItems != null && FilteredItems.Contains(item))
+                    FilteredItems.Remove(item);
+            });
+
+            DeregisterItemEvents(item);
+            lock (_collectionLock)
+            {
+                _allItems.Remove(item);
+            }
+            _monitor.ResetLastContent();
+            PushToUndo(batch);
+            
+            UpdateCategoryCounts();
+        }
         
         public void UndoDelete(UndoBatch? specificBatch = null)
         {
@@ -277,20 +430,44 @@ namespace ClipboardPro.ViewModels
             Dispatcher.Invoke(() => { if (batch == null && ActiveUndos.Count > 0) { batch = ActiveUndos.Last(); ActiveUndos.Remove(batch); } else if (batch != null) ActiveUndos.Remove(batch); });
             if (batch == null) return;
             lock (_collectionLock) {
-                if (batch.IsSingle && batch.Items.Count > 0) { var item = batch.Items[0]; if (batch.Index >= 0 && batch.Index <= _allItems.Count) _allItems.Insert(batch.Index, item); else _allItems.Add(item); RegisterItemEvents(item); }
-                else if (batch.Category != null && batch.CategoryItems != null) { if (!Settings.CustomCategories.Any(c => c.Name == batch.Category.Name)) Settings.CustomCategories.Add(batch.Category); foreach (var item in batch.CategoryItems) { item.Category = batch.Category.Name; if (!_allItems.Contains(item)) _allItems.Add(item); } SaveSettings(); }
-                else { foreach (var item in batch.Items) { if (!_allItems.Contains(item)) { _allItems.Add(item); RegisterItemEvents(item); } } }
+                if (batch.IsSingle && batch.Items.Count > 0) { var item = batch.Items[0]; if (batch.Index >= 0 && batch.Index <= _allItems.Count) _allItems.Insert(batch.Index, item); else _allItems.Add(item); RegisterItemEvents(item); _storage.SaveItem(item); }
+                else if (batch.Category != null && batch.CategoryItems != null) { if (!Settings.CustomCategories.Any(c => c.Name == batch.Category.Name)) Settings.CustomCategories.Add(batch.Category); foreach (var item in batch.CategoryItems) { item.Category = batch.Category.Name; if (!_allItems.Contains(item)) _allItems.Add(item); RegisterItemEvents(item); _storage.SaveItem(item); } SaveSettings(); }
+                else { foreach (var item in batch.Items) { if (!_allItems.Contains(item)) { _allItems.Add(item); RegisterItemEvents(item); _storage.SaveItem(item); } } }
             }
-            SaveItems(); ApplyFilter();
+            UpdateCategoryCounts();
+            
+            if (batch.IsSingle && batch.Items.Count > 0)
+            {
+                var item = batch.Items[0];
+                Dispatcher.Invoke(() => {
+                    if (FilteredItems != null && !FilteredItems.Contains(item))
+                    {
+                        if (batch.FilteredIndex >= 0 && batch.FilteredIndex <= FilteredItems.Count)
+                            FilteredItems.Insert(batch.FilteredIndex, item);
+                        else
+                            FilteredItems.Insert(0, item);
+                    }
+                });
+            }
+            else
+            {
+                ApplyFilter();
+            }
         }
 
         private void PushToUndo(UndoBatch batch) { batch.Expiration = DateTime.Now.AddSeconds(10.5); Dispatcher.Invoke(() => ActiveUndos.Add(batch)); StartUndoMonitor(); }
         private void StartUndoMonitor() { lock (_undoLock) { if (_isUndoMonitorRunning) return; _isUndoMonitorRunning = true; } Task.Run(async () => { while (true) { List<UndoBatch> toCommit = new(); Dispatcher.Invoke(() => { var now = DateTime.Now; for (int i = ActiveUndos.Count - 1; i >= 0; i--) { var batch = ActiveUndos[i]; if (now >= batch.Expiration) { toCommit.Add(batch); ActiveUndos.RemoveAt(i); } else { double remainingMs = (batch.Expiration - now).TotalMilliseconds; batch.Progress = (int)((remainingMs / 10000.0) * 100); batch.Countdown = (int)Math.Ceiling(remainingMs / 1000.0); } } IsUndoVisible = ActiveUndos.Count > 0; }); foreach (var batch in toCommit) { foreach (var item in batch.Items) _storage.DeleteItem(item); } int count = 0; Dispatcher.Invoke(() => count = ActiveUndos.Count); lock (_undoLock) { if (count == 0) { _isUndoMonitorRunning = false; break; } } await Task.Delay(100); } }); }
 
-        public void ApplyFilter()
+        public Task ApplyFilter()
         {
+            IsSearchLoading = true;
             int currentToken = System.Threading.Interlocked.Increment(ref _filterRequestToken);
-            Task.Run(() => {
+            
+            return Task.Run(() => ApplyFilterCore(currentToken));
+        }
+
+        private void ApplyFilterCore(int currentToken)
+        {
                 // ── Snippets Filter ──
                 if (_activeFilter == "Snippets")
                 {
@@ -313,12 +490,18 @@ namespace ClipboardPro.ViewModels
 
                     var finalSnippets = filtered.ToList();
                     var newCol = new ObservableCollection<SnippetItem>(finalSnippets);
-                    Dispatcher.BeginInvoke(new Action(() => {
+                    var snippetAction = new Action(() => {
                         if (currentToken != _filterRequestToken) return;
                         FilteredSnippets = newCol;
                         _snippetCount = snippets.Count;
                         OnPropertyChanged(nameof(SnippetCount));
-                    }));
+                        IsSearchLoading = false;
+                    });
+                    
+                    if (_isInitializing || Dispatcher.CheckAccess())
+                        snippetAction();
+                    else
+                        Dispatcher.BeginInvoke(snippetAction, System.Windows.Threading.DispatcherPriority.Normal);
                     return;
                 }
 
@@ -374,60 +557,107 @@ namespace ClipboardPro.ViewModels
                 var ordered = result.OrderByDescending(i => i.IsPinned);
                 var finalResults = _sortOrder switch {
                     "Oldest First" => ordered.ThenBy(i => i.Timestamp).ToList(),
-                    "A-Z" => ordered.ThenBy(i => i.Content).ToList(),
-                    "Z-A" => ordered.ThenByDescending(i => i.Content).ToList(),
+                    "A-Z" => ordered.ThenBy(i => i.Title ?? (i.Content != null && i.Content.Length > 50 ? i.Content[..50] : i.Content ?? string.Empty)).ToList(),
+                    "Z-A" => ordered.ThenByDescending(i => i.Title ?? (i.Content != null && i.Content.Length > 50 ? i.Content[..50] : i.Content ?? string.Empty)).ToList(),
                     _ => ordered.ThenByDescending(i => i.Timestamp).ToList()
                 };
 
-                Dispatcher.BeginInvoke(new Action(() => {
+                var action = new Action(() => {
                     if (currentToken != _filterRequestToken) return;
-                    FilteredItems = new ObservableCollection<ClipboardItem>(finalResults);
+
+                    // In-place update: avoid replacing the entire collection (prevents full ListBox re-render)
+                    // 1. Quick identity check — if nothing changed, skip entirely
+                    if (FilteredItems != null && FilteredItems.Count == finalResults.Count)
+                    {
+                        bool identical = true;
+                        for (int j = 0; j < finalResults.Count; j++)
+                        {
+                            if (FilteredItems[j].Id != finalResults[j].Id) { identical = false; break; }
+                        }
+                        if (identical) { IsSearchLoading = false; return; }
+                    }
+
+                    // Check if there are too many changes (e.g. resorting entirely)
+                    int moves = Math.Abs((FilteredItems?.Count ?? 0) - finalResults.Count);
+                    if (FilteredItems != null)
+                    {
+                        int limit = Math.Min(FilteredItems.Count, finalResults.Count);
+                        for (int j = 0; j < limit; j++)
+                        {
+                            if (FilteredItems[j].Id != finalResults[j].Id) moves++;
+                        }
+                    }
+
+                    if (FilteredItems == null || moves > Math.Max(10, FilteredItems.Count / 3))
+                    {
+                        FilteredItems = new ObservableCollection<ClipboardItem>(finalResults);
+                        OnPropertyChanged(nameof(TotalCount));
+                        IsSearchLoading = false;
+                        return;
+                    }
+
+                    // 2. Remove items that are no longer in the result
+                    var resultIds = new HashSet<string>(finalResults.Select(i => i.Id));
+                    for (int j = FilteredItems.Count - 1; j >= 0; j--)
+                    {
+                        if (!resultIds.Contains(FilteredItems[j].Id))
+                            FilteredItems.RemoveAt(j);
+                    }
+
+                    // 3. Add/move items to match finalResults order
+                    for (int j = 0; j < finalResults.Count; j++)
+                    {
+                        var targetItem = finalResults[j];
+                        if (j < FilteredItems.Count)
+                        {
+                            if (FilteredItems[j].Id != targetItem.Id)
+                            {
+                                int existingIndex = -1;
+                                for (int k = j + 1; k < FilteredItems.Count; k++)
+                                {
+                                    if (FilteredItems[k].Id == targetItem.Id) { existingIndex = k; break; }
+                                }
+                                if (existingIndex >= 0)
+                                    FilteredItems.Move(existingIndex, j);
+                                else
+                                    FilteredItems.Insert(j, targetItem);
+                            }
+                        }
+                        else
+                        {
+                            FilteredItems.Add(targetItem);
+                        }
+                    }
+
                     OnPropertyChanged(nameof(TotalCount));
-                }));
-            });
+                    IsSearchLoading = false;
+                });
+
+                if (_isInitializing || Dispatcher.CheckAccess())
+                    action();
+                else
+                    Dispatcher.BeginInvoke(action, System.Windows.Threading.DispatcherPriority.Normal);
         }
 
         private bool FuzzyMatch(string query, string content)
         {
             if (string.IsNullOrEmpty(query)) return true;
             if (string.IsNullOrEmpty(content)) return false;
-            
-            // Use native Contains for massive performance boost over manual iteration
             return content.Contains(query, StringComparison.OrdinalIgnoreCase);
         }
 
         private int _filterRequestToken = 0;
-        private System.Threading.Timer? _saveTimer;
-        private readonly object _saveLock = new();
         public void SaveItems(bool immediate = false)
         {
-            lock (_saveLock)
+            // Fully managed via SQLite single records, retained for interface compatibility
+            List<ClipboardItem> itemsSnapshot;
+            lock (_collectionLock)
             {
-                _saveTimer?.Dispose();
-                if (immediate)
-                {
-                    List<ClipboardItem> itemsSnapshot;
-                    lock (_collectionLock)
-                    {
-                        itemsSnapshot = _allItems.ToList();
-                    }
-                    _storage.SaveItems(itemsSnapshot);
-                }
-                else
-                {
-                    _saveTimer = new System.Threading.Timer(_ =>
-                    {
-                        List<ClipboardItem> itemsSnapshot;
-                        lock (_collectionLock)
-                        {
-                            itemsSnapshot = _allItems.ToList();
-                        }
-                        _storage.SaveItems(itemsSnapshot);
-                    }, null, 1000, System.Threading.Timeout.Infinite);
-                }
+                itemsSnapshot = _allItems.ToList();
             }
-            UpdateCategoryCounts();
+            Task.Run(() => _storage.SaveItems(itemsSnapshot));
         }
+
         public void SaveSettings() => _storage.SaveSettings(Settings);
         
         public void AddOrUpdateSnippet(SnippetItem snippet)
@@ -451,7 +681,22 @@ namespace ClipboardPro.ViewModels
             ApplyFilter();
         }
 
-        private void OffloadContent(ClipboardItem item) { if (item.Type == ClipboardItemType.Image || string.IsNullOrEmpty(item.Content) || item.Content.Length < 4096) return; try { var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ClipboardPro", "Cache"); if (!Directory.Exists(dir)) Directory.CreateDirectory(dir); item.OffloadedContentPath = Path.Combine(dir, item.Id + ".txt"); File.WriteAllText(item.OffloadedContentPath, item.Content); item.Content = item.Content.Substring(0, 4096) + "... [Full content offloaded to SSD]"; } catch { } }
+        private void OffloadContent(ClipboardItem item) 
+        { 
+            if (item.Type == ClipboardItemType.Image || string.IsNullOrEmpty(item.Content) || item.Content.Length < 4096) return; 
+            try 
+            { 
+                var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ClipboardPro", "Cache"); 
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir); 
+                item.OffloadedContentPath = Path.Combine(dir, item.Id + ".txt"); 
+                
+                // Write asynchronously to prevent monitor thread lock
+                File.WriteAllTextAsync(item.OffloadedContentPath, item.Content); 
+                item.Content = item.Content.Substring(0, 4096) + "... [Full content offloaded to SSD]"; 
+            } 
+            catch { } 
+        }
+
         private string ReloadContent(ClipboardItem item) { if (item.OffloadedContentPath == null) return item.Content; try { if (File.Exists(item.OffloadedContentPath)) return File.ReadAllText(item.OffloadedContentPath); } catch { } return item.Content; }
         
         private readonly NetworkService _network;
@@ -465,8 +710,77 @@ namespace ClipboardPro.ViewModels
         private void OnNetworkItemReceived(ClipboardItem item) { Dispatcher.BeginInvoke(new Action(() => { if (!_allItems.Any(i => i.Content == item.Content && i.Type == item.Type)) { item.Timestamp = DateTime.Now; item.Id = Guid.NewGuid().ToString(); AddItem(item); } })); }
         
         public async Task<bool> SendToDevice(ClipboardItem item, PeerInfo peer, System.Threading.CancellationToken ct = default, System.Threading.ManualResetEventSlim? pauseEvent = null) { try { return await _network.SendItemAsync(item, peer.IP, peer.Port, ct, pauseEvent); } catch { return false; } }
-        public void ClearAll() { lock (_collectionLock) { List<ClipboardItem> toRemove; if (ActiveFilter == "All Items" || ActiveFilter == "All") toRemove = _allItems.Where(i => !i.IsPinned).ToList(); else if (ActiveFilter.StartsWith("cat:")) { var cat = ActiveFilter.Substring(4); toRemove = _allItems.Where(i => !i.IsPinned && string.Equals(i.Category, cat, StringComparison.OrdinalIgnoreCase)).ToList(); } else toRemove = FilteredItems.Where(i => !i.IsPinned).ToList(); foreach (var item in toRemove) { _allItems.Remove(item); _storage.DeleteItem(item); } } SaveItems(); ApplyFilter(); }
-        public void DeleteCategory(string catName) { var cat = Settings.CustomCategories.FirstOrDefault(c => c.Name == catName); if (cat != null) { Settings.CustomCategories.Remove(cat); lock (_collectionLock) { foreach (var item in _allItems.Where(i => i.Category == catName)) item.Category = null; } SaveSettings(); SaveItems(); UpdateCategoryCounts(); if (ActiveFilter == "cat:" + catName) ActiveFilter = "All Items"; else ApplyFilter(); } }
+        
+        public void ClearAll() 
+        { 
+            List<ClipboardItem> toRemove; 
+            lock (_collectionLock) 
+            { 
+                if (ActiveFilter == "Pinned")
+                    toRemove = FilteredItems.ToList();
+                else if (ActiveFilter == "Favorites")
+                    toRemove = FilteredItems.ToList();
+                else if (ActiveFilter == "All Items" || ActiveFilter == "All") 
+                    toRemove = _allItems.Where(i => !i.IsPinned).ToList(); 
+                else if (ActiveFilter.StartsWith("cat:")) 
+                { 
+                    var cat = ActiveFilter.Substring(4); 
+                    toRemove = _allItems.Where(i => !i.IsPinned && string.Equals(i.Category, cat, StringComparison.OrdinalIgnoreCase)).ToList(); 
+                } 
+                else 
+                    toRemove = FilteredItems.Where(i => !i.IsPinned).ToList(); 
+
+                if (toRemove.Count == 0) return;
+
+                foreach (var item in toRemove) 
+                { 
+                    DeregisterItemEvents(item); 
+                    _allItems.Remove(item); 
+                } 
+            }
+
+            var batch = new UndoBatch 
+            { 
+                IsSingle = false, 
+                Items = toRemove, 
+                DisplayName = toRemove.Count > 1 ? $"{toRemove.Count} items cleared" : "Item cleared" 
+            };
+            PushToUndo(batch);
+
+            UpdateCategoryCounts();
+            ApplyFilter(); 
+        }
+
+        public void DeleteCategory(string catName)
+        {
+            var cat = Settings.CustomCategories.FirstOrDefault(c => c.Name == catName);
+            if (cat != null)
+            {
+                Settings.CustomCategories.Remove(cat);
+                _isBatchUpdating = true;
+                try
+                {
+                    lock (_collectionLock)
+                    {
+                        var itemsToUpdate = _allItems.Where(i => string.Equals(i.Category, catName, StringComparison.OrdinalIgnoreCase)).ToList();
+                        foreach (var item in itemsToUpdate)
+                        {
+                            item.Category = null;
+                            _storage.SaveItem(item);
+                        }
+                    }
+                }
+                finally
+                {
+                    _isBatchUpdating = false;
+                }
+                SaveSettings();
+                UpdateCategoryCounts();
+                if (ActiveFilter == "cat:" + catName) ActiveFilter = "All Items";
+                else ApplyFilter();
+            }
+        }
+        
         public void RenameCategory(string oldName, string newName, string color, string icon)
         {
             var cat = Settings.CustomCategories.FirstOrDefault(c => c.Name == oldName);
@@ -475,22 +789,73 @@ namespace ClipboardPro.ViewModels
                 cat.Name = newName;
                 cat.Color = color;
                 cat.Icon = icon;
-                lock (_collectionLock)
+                
+                _isBatchUpdating = true;
+                try
                 {
-                    foreach (var item in _allItems.Where(i => string.Equals(i.Category, oldName, StringComparison.OrdinalIgnoreCase)))
+                    lock (_collectionLock)
                     {
-                        item.Category = newName;
+                        var itemsToUpdate = _allItems.Where(i => string.Equals(i.Category, oldName, StringComparison.OrdinalIgnoreCase)).ToList();
+                        foreach (var item in itemsToUpdate)
+                        {
+                            item.Category = newName;
+                            _storage.SaveItem(item);
+                        }
                     }
                 }
+                finally
+                {
+                    _isBatchUpdating = false;
+                }
+
                 SaveSettings();
-                SaveItems();
                 UpdateCategoryCounts();
                 if (ActiveFilter == "cat:" + oldName) ActiveFilter = "cat:" + newName;
                 else ApplyFilter();
             }
         }
+
         public void PastePlainText(ClipboardItem item) { string content = ReloadContent(item); if (item.Type == ClipboardItemType.Image) return; _monitor.InternalCopyCooldown = DateTime.Now.AddSeconds(2); _monitor.InternalCopyContent = content; System.Windows.Clipboard.SetText(content); }
-        public void ExportZip(string path) { try { var tempDir = Path.Combine(Path.GetTempPath(), "ClipboardProExport_" + Guid.NewGuid()); Directory.CreateDirectory(tempDir); lock (_collectionLock) { _storage.SaveItems(_allItems); _storage.SaveSettings(Settings); } var dataFolder = _storage.GetDataFolder(); foreach (var file in Directory.GetFiles(dataFolder, "*.json")) File.Copy(file, Path.Combine(tempDir, Path.GetFileName(file))); var imgDir = _storage.GetImagesFolder(); if (Directory.Exists(imgDir)) { var tempImgDir = Path.Combine(tempDir, "Images"); Directory.CreateDirectory(tempImgDir); foreach (var file in Directory.GetFiles(imgDir)) File.Copy(file, Path.Combine(tempImgDir, Path.GetFileName(file))); } if (File.Exists(path)) File.Delete(path); System.IO.Compression.ZipFile.CreateFromDirectory(tempDir, path); Directory.Delete(tempDir, true); } catch (Exception ex) { System.Windows.MessageBox.Show("Export failed: " + ex.Message); } }
+        
+        public void ExportZip(string path) 
+        { 
+            try 
+            { 
+                var tempDir = Path.Combine(Path.GetTempPath(), "ClipboardProExport_" + Guid.NewGuid()); 
+                Directory.CreateDirectory(tempDir); 
+                
+                lock (_collectionLock) 
+                { 
+                    _storage.SaveSettings(Settings); 
+                } 
+
+                // Freeze database and backup cleanly via vacuum command
+                var tempDbPath = Path.Combine(tempDir, "clipboard.db");
+                _storage.VacuumDatabase(tempDbPath);
+
+                var dataFolder = _storage.GetDataFolder(); 
+                if (File.Exists(Path.Combine(dataFolder, "settings.json")))
+                    File.Copy(Path.Combine(dataFolder, "settings.json"), Path.Combine(tempDir, "settings.json"), true);
+                if (File.Exists(Path.Combine(dataFolder, "snippets.json")))
+                    File.Copy(Path.Combine(dataFolder, "snippets.json"), Path.Combine(tempDir, "snippets.json"), true);
+                    
+                var imgDir = _storage.GetImagesFolder(); 
+                if (Directory.Exists(imgDir)) { 
+                    var tempImgDir = Path.Combine(tempDir, "Images"); 
+                    Directory.CreateDirectory(tempImgDir); 
+                    foreach (var file in Directory.GetFiles(imgDir)) 
+                        File.Copy(file, Path.Combine(tempImgDir, Path.GetFileName(file))); 
+                } 
+                if (File.Exists(path)) File.Delete(path); 
+                System.IO.Compression.ZipFile.CreateFromDirectory(tempDir, path); 
+                Directory.Delete(tempDir, true); 
+            } 
+            catch (Exception ex) 
+            { 
+                System.Windows.MessageBox.Show("Export failed: " + ex.Message); 
+            } 
+        }
+
         public void ImportZip(string path)
         {
             try
@@ -501,11 +866,16 @@ namespace ClipboardPro.ViewModels
                 var tempDir = Path.Combine(Path.GetTempPath(), "ClipboardProImport_" + Guid.NewGuid());
                 System.IO.Compression.ZipFile.ExtractToDirectory(path, tempDir);
                 var dataFile = Path.Combine(tempDir, "data.json");
+                var dbFile = Path.Combine(tempDir, "clipboard.db");
                 var settingsFile = Path.Combine(tempDir, "settings.json");
 
                 if (choice.SelectedMode == ImportMode.Replace)
                 {
-                    lock (_collectionLock) _allItems.Clear();
+                    lock (_collectionLock) 
+                    {
+                        foreach (var item in _allItems) DeregisterItemEvents(item);
+                        _allItems.Clear();
+                    }
                     if (File.Exists(settingsFile))
                     {
                         var importedSettings = _storage.LoadSettingsFromFile(settingsFile);
@@ -514,6 +884,7 @@ namespace ClipboardPro.ViewModels
                     App.TextExpander?.ClearAll();
                 }
 
+                // Case 1: Legacy JSON Import
                 if (File.Exists(dataFile))
                 {
                     var importedItems = _storage.ImportJson(dataFile);
@@ -528,6 +899,33 @@ namespace ClipboardPro.ViewModels
                             }
                         }
                     }
+                    _storage.SaveItems(_allItems);
+                }
+                // Case 2: Modern SQLite DB Import
+                else if (File.Exists(dbFile))
+                {
+                    if (choice.SelectedMode == ImportMode.Replace)
+                    {
+                        _storage.OverwriteDatabase(dbFile);
+                        var loaded = _storage.LoadItems();
+                        lock (_collectionLock)
+                        {
+                            _allItems = loaded;
+                            foreach (var item in _allItems) RegisterItemEvents(item);
+                        }
+                    }
+                    else // Merge Mode
+                    {
+                        _storage.ImportDatabaseMerge(dbFile);
+                        var loaded = _storage.LoadItems();
+                        lock (_collectionLock)
+                        {
+                            foreach (var item in _allItems) DeregisterItemEvents(item);
+                            _allItems = loaded;
+                            foreach (var item in _allItems) RegisterItemEvents(item);
+                        }
+                    }
+                    App.TextExpander?.Load();
                 }
 
                 // Import Snippets
@@ -563,7 +961,6 @@ namespace ClipboardPro.ViewModels
                     }
                 }
 
-                SaveItems();
                 SaveSettings();
                 UpdateCategoryCounts();
                 ApplyFilter();
@@ -574,28 +971,88 @@ namespace ClipboardPro.ViewModels
                 System.Windows.MessageBox.Show("Import failed: " + ex.Message);
             }
         }
-        public void PrettifyJson(ClipboardItem item) { try { var content = ReloadContent(item); var parsed = Newtonsoft.Json.Linq.JToken.Parse(content); item.Content = parsed.ToString(Newtonsoft.Json.Formatting.Indented); SaveItems(); } catch { } }
-        public void UpdateItemCategory(ClipboardItem item, string category) { item.Category = category; SaveItems(); }
+
+        public void PrettifyJson(ClipboardItem item) { try { var content = ReloadContent(item); var parsed = Newtonsoft.Json.Linq.JToken.Parse(content); item.Content = parsed.ToString(Newtonsoft.Json.Formatting.Indented); _storage.SaveItem(item); } catch { } }
+        public void UpdateItemCategory(ClipboardItem item, string category) { item.Category = category; _storage.SaveItem(item); }
         public string GetFullImagePath(string? fileName) => _storage.GetFullImagePath(fileName);
-        public void OptimizeDatabase() { lock (_collectionLock) _storage.PerformAutoMaintenance(_allItems); }
-        public void OptimizeHistory() { lock (_collectionLock) _storage.EnforceRetentionPolicy(_allItems, Settings); SaveItems(); ApplyFilter(); }
+        public void OptimizeDatabase() 
+        { 
+            // 1. Clean orphaned images
+            List<ClipboardItem> snapshot;
+            lock (_collectionLock) { snapshot = _allItems.ToList(); }
+            _storage.PerformAutoMaintenance(snapshot);
+            // 2. Compact the SQLite database file (reclaims deleted row space)
+            _storage.VacuumSelf();
+        }
+        public void OptimizeHistory() { lock (_collectionLock) _storage.EnforceRetentionPolicy(_allItems, Settings); ApplyFilter(); }
         public void ResetSettings() { Settings = new AppSettings(); SaveSettings(); }
-        public void ResetTotalApp() { lock (_collectionLock) { _allItems.Clear(); Settings = new AppSettings(); App.TextExpander?.ClearAll(); var dataDir = _storage.GetDataFolder(); foreach (var file in Directory.GetFiles(dataDir)) try { File.Delete(file); } catch { } } SaveSettings(); SaveItems(); ApplyFilter(); }
+        public void ResetTotalApp() {
+            lock (_collectionLock) {
+                foreach (var item in _allItems) DeregisterItemEvents(item);
+                _allItems.Clear();
+                Settings = new AppSettings();
+                App.TextExpander?.ClearAll();
+                _storage.ClearAllClipboardItems();
+                
+                Dispatcher.Invoke(() => {
+                    ActiveUndos.Clear();
+                    FilteredItems?.Clear();
+                });
+            }
+
+            // Force GC and wait to release any potential WPF/GDI file locks
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            lock (_collectionLock) {
+                var imagesDir = _storage.GetImagesFolder();
+                if (Directory.Exists(imagesDir)) {
+                    foreach (var file in Directory.GetFiles(imagesDir)) {
+                        for (int i = 0; i < 3; i++) {
+                            try { 
+                                File.Delete(file); 
+                                break; 
+                            } 
+                            catch { 
+                                System.Threading.Thread.Sleep(50); 
+                            }
+                        }
+                    }
+                }
+                var cacheDir = Path.Combine(_storage.GetDataFolder(), "Cache");
+                if (Directory.Exists(cacheDir)) {
+                    foreach (var file in Directory.GetFiles(cacheDir)) {
+                        try { File.Delete(file); } catch { }
+                    }
+                }
+                var receivedDir = _storage.GetReceivedFolder();
+                if (Directory.Exists(receivedDir)) {
+                    foreach (var file in Directory.GetFiles(receivedDir)) {
+                        try { File.Delete(file); } catch { }
+                    }
+                }
+                var dataDir = _storage.GetDataFolder();
+                try { File.Delete(Path.Combine(dataDir, "data.json")); } catch { }
+                try { File.Delete(Path.Combine(dataDir, "data.json.migrated")); } catch { }
+                try { File.Delete(Path.Combine(dataDir, "snippets.json.migrated")); } catch { }
+            }
+            SaveSettings();
+            UpdateCategoryCounts();
+            ApplyFilter();
+        }
         public void TrimMemory() { try { GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect(); if (Environment.OSVersion.Platform == PlatformID.Win32NT) SetProcessWorkingSetSize(System.Diagnostics.Process.GetCurrentProcess().Handle, (IntPtr)(-1), (IntPtr)(-1)); } catch { } }
         [DllImport("kernel32.dll")] private static extern bool SetProcessWorkingSetSize(IntPtr process, IntPtr minimumWorkingSetSize, IntPtr maximumWorkingSetSize);
 
         public void Dispose()
         {
             _network?.Dispose();
-            _saveTimer?.Dispose();
             
-            // Force save any pending items on shutdown to prevent data loss
-            List<ClipboardItem> itemsSnapshot;
+            // Unregister all hooked events to avoid leaks
             lock (_collectionLock)
             {
-                itemsSnapshot = _allItems.ToList();
+                foreach (var item in _allItems) DeregisterItemEvents(item);
             }
-            _storage.SaveItems(itemsSnapshot);
         }
         
         [DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr hObject);

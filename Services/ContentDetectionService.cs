@@ -31,7 +31,7 @@ namespace ClipboardPro.Services
         {
             if (string.IsNullOrWhiteSpace(text)) return ClipboardItemType.Text;
 
-            var trimmed = text.Trim();
+            var trimmed = text.Trim().Trim('"');
 
             // 1. High-priority strict matches
             if (UrlRegex.IsMatch(trimmed))   return ClipboardItemType.URL;
@@ -69,12 +69,8 @@ namespace ClipboardPro.Services
                 try
                 {
                     if (System.IO.Directory.Exists(trimmed)) return ClipboardItemType.Directory;
-                    if (System.IO.File.Exists(trimmed)) return ClipboardItemType.Path;
                 }
                 catch { }
-                
-                // If it looks like a path but doesn't exist, it might still be a path string
-                return ClipboardItemType.Path;
             }
 
             return ClipboardItemType.Text;

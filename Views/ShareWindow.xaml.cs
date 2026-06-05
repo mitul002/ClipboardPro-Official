@@ -13,6 +13,7 @@ namespace ClipboardPro.Views
     {
         private readonly MainViewModel _vm;
         private ObservableCollection<TransferModel> _transfers = new();
+        private System.Collections.Specialized.NotifyCollectionChangedEventHandler? _peersChangedHandler;
 
         public ShareWindow(MainViewModel vm)
         {
@@ -23,9 +24,17 @@ namespace ClipboardPro.Views
             DevicesList.ItemsSource = _vm.ActivePeers;
             TransfersList.ItemsSource = _transfers;
             
-            // Listen for count changes to update status text
-            _vm.ActivePeers.CollectionChanged += (s, e) => UpdateStatus();
+            _peersChangedHandler = (s, e) => UpdateStatus();
+            _vm.ActivePeers.CollectionChanged += _peersChangedHandler;
             UpdateStatus();
+
+            this.Closed += (s, e) =>
+            {
+                if (_peersChangedHandler != null)
+                {
+                    _vm.ActivePeers.CollectionChanged -= _peersChangedHandler;
+                }
+            };
         }
 
         private void UpdateStatus()
@@ -41,7 +50,7 @@ namespace ClipboardPro.Views
 
         private void BtnClose_Click(object sender, RoutedEventArgs e)
         {
-            this.Hide(); // Hide instead of close to keep it persistent if needed
+            this.Hide(); 
         }
 
         private void BtnMinimize_Click(object sender, RoutedEventArgs e)
@@ -107,7 +116,7 @@ namespace ClipboardPro.Views
         private async void ProcessFiles(string[] files)
         {
             if (_selectedPeer == null) return;
-            var peer = _selectedPeer; // Capture local
+            var peer = _selectedPeer; 
 
             foreach (string file in files)
             {
@@ -128,7 +137,6 @@ namespace ClipboardPro.Views
                         Timestamp = DateTime.Now
                     };
 
-                    // Simple progress bridge
                     item.PropertyChanged += (s, ev) => 
                     {
                         Dispatcher.BeginInvoke(new Action(() => 
@@ -188,9 +196,10 @@ namespace ClipboardPro.Views
         private void BtnViewHistory_Click(object sender, RoutedEventArgs e)
         {
             Dispatcher.BeginInvoke(new Action(() => {
+                this.Hide();
                 if (System.Windows.Application.Current is App app)
                 {
-                    app.ShowMainWindow("Received"); // Navigate to "File Received"
+                    app.ShowMainWindow("File Received"); 
                 }
             }));
         }
@@ -247,7 +256,7 @@ namespace ClipboardPro.Views
             set { _isPaused = value; OnPropertyChanged(); OnPropertyChanged(nameof(PauseIcon)); }
         }
 
-        public string PauseIcon => IsPaused ? "\uE768" : "\uE769"; // Play : Pause
+        public string PauseIcon => IsPaused ? "\uE768" : "\uE769"; 
         public Visibility CanAction => (IsActive && Progress < 100) ? Visibility.Visible : Visibility.Collapsed;
 
         public void TogglePause()

@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using ClipboardPro.Models;
+using ClipboardPro.ViewModels;
 using System.Linq;
 
 namespace ClipboardPro.Views
@@ -413,7 +414,24 @@ namespace ClipboardPro.Views
                 }
 
                 var rtb = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-                rtb.Render(DrawingGrid);
+                
+                // Explicitly render each layer to ensure correct compositing
+                var dv = new DrawingVisual();
+                using (var dc = dv.RenderOpen())
+                {
+                    // 1. Draw original image
+                    if (ImgDisplay.Source != null)
+                    {
+                        dc.DrawImage(ImgDisplay.Source, new Rect(0, 0, width, height));
+                    }
+                }
+                rtb.Render(dv);
+                
+                // 2. Draw Ink (Pencil/Eraser)
+                rtb.Render(DrawCanvas);
+                
+                // 3. Draw Shapes
+                rtb.Render(ShapeCanvas);
                 
                 // Restore user's zoom
                 ZoomScale = currentZoom;
@@ -421,28 +439,56 @@ namespace ClipboardPro.Views
                 var encoder = new PngBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(rtb));
                 
-                if (string.IsNullOrEmpty(_item.ImagePath)) return;
-                
-                string fullPath = _item.ImagePath;
-                if (!System.IO.Path.IsPathRooted(fullPath))
-                {
-                    var appData = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ClipboardPro", "Images");
-                    fullPath = System.IO.Path.Combine(appData, fullPath);
-                }
+                // Create a NEW item for the edited version so original is preserved
+                var newItem = new ClipboardItem 
+                { 
+                    Id = Guid.NewGuid().ToString(),
+                    Type = ClipboardItemType.Image,
+                    Timestamp = DateTime.Now,
+                    Content = "Edited Image",
+                    IsPinned = _item.IsPinned,
+                    IsFavorite = _item.IsFavorite,
+                    Category = _item.Category
+                };
+
+                // Save to a NEW file path
+                string newFileName = $"img_{DateTime.Now:yyyyMMdd_HHmmss_fff}.png";
+                string appData = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ClipboardPro", "Images");
+                if (!System.IO.Directory.Exists(appData)) System.IO.Directory.CreateDirectory(appData);
+                string fullPath = System.IO.Path.Combine(appData, newFileName);
 
                 using (var fs = new System.IO.FileStream(fullPath, System.IO.FileMode.Create))
                 {
                     encoder.Save(fs);
                 }
+                newItem.ImagePath = newFileName;
 
-                // 2. Refresh Main Window
-                // Clear the image cache so the converter reloads the file from disk
-                ClipboardPro.Converters.ImagePathToImageConverter.ClearCache(fullPath);
-                
-                // Toggle property to trigger Binding refresh in the list
-                var temp = _item.ImagePath;
-                _item.ImagePath = string.Empty;
-                _item.ImagePath = temp;
+                // Compute new hash
+                try
+                {
+                    using (var ms = new System.IO.MemoryStream())
+                    {
+                        encoder.Save(ms);
+                        ms.Seek(0, System.IO.SeekOrigin.Begin);
+                        using (var img = System.Drawing.Image.FromStream(ms))
+                        {
+                            var monitor = ((App)System.Windows.Application.Current).GetMonitor();
+                            if (monitor != null) newItem.ImageHash = monitor.ComputeImageHash(img);
+                        }
+                    }
+                }
+                catch { }
+
+                // Add to ViewModel as a fresh entry
+                var mainWindow = System.Windows.Application.Current.MainWindow as MainWindow;
+                if (mainWindow?.DataContext is MainViewModel vm)
+                {
+                    vm.AddItem(newItem);
+                }
+
+                // Close the editor since we've added a new item
+                this.DialogResult = true;
+                this.Close();
             }
             catch (Exception ex) { System.Windows.MessageBox.Show("Error saving image: " + ex.Message); }
         }

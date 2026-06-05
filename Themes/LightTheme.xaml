@@ -7,7 +7,7 @@
     <Color x:Key="BgDeepColor">#F1F5F9</Color>
     <Color x:Key="BgSidebarColor">#FFFFFF</Color>
     <Color x:Key="BgCardColor">#FFFFFF</Color>
-    <Color x:Key="BgCardHoverColor">#F8FAFC</Color>
+    <Color x:Key="BgCardHoverColor">#EDF2F7</Color>
     <Color x:Key="AccentPrimaryColor">#4F46E5</Color>
     <Color x:Key="AccentSecondaryColor">#4338CA</Color>
     <Color x:Key="AccentLightColor">#6366F1</Color>

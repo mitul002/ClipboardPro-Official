@@ -182,6 +182,15 @@ namespace ClipboardPro.Services
                                 var fileName = item.Type == ClipboardItemType.Image ? $"sync_{Guid.NewGuid()}.png" : item.Content;
                                 if (item.Type == ClipboardItemType.Path) fileName = Path.GetFileName(item.Content);
                                 
+                                // Robust security sanitization: enforce filename only and sanitize illegal chars
+                                fileName = Path.GetFileName(fileName);
+                                fileName = fileName.Replace("..", "").Replace("/", "").Replace("\\", "");
+                                foreach (char c in Path.GetInvalidFileNameChars())
+                                {
+                                    fileName = fileName.Replace(c, '_');
+                                }
+                                if (string.IsNullOrWhiteSpace(fileName)) fileName = $"sync_{Guid.NewGuid()}.dat";
+                                
                                 var fullPath = Path.Combine(appData, fileName);
                                 
                                 // Receive payload in chunks to avoid UI freeze and memory spikes

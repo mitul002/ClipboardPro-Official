@@ -30,7 +30,7 @@ namespace ClipboardPro.Services
 
         private HwndSource? _hwndSource;
         private readonly StorageService _storage;
-        private uint _lastSequenceNumber = 0;
+        private volatile uint _lastSequenceNumber = 0;
 
         private readonly BlockingCollection<uint> _queue = new BlockingCollection<uint>();
         private CancellationTokenSource? _cts;
@@ -99,8 +99,16 @@ namespace ClipboardPro.Services
             }
         }
 
-        private string? _lastImageHash = null;  
-        private string? _lastTextContent = null; 
+        private volatile string? _lastImageHash = null;  
+        private volatile string? _lastTextContent = null; 
+
+        public void ResetLastContent()
+        {
+            _lastTextContent = null;
+            _lastImageHash = null;
+            InternalCopyContent = null;
+            InternalCopyCooldown = DateTime.MinValue;
+        }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
@@ -162,19 +170,18 @@ namespace ClipboardPro.Services
                                     {
                                         using var img = System.Drawing.Image.FromFile(firstFile);
                                         string hash = ComputeImageHash(img);
-                                        if (hash != _lastImageHash)
-                                        {
-                                            _lastImageHash = hash;
-                                            var path = _storage.SaveImage(img);
-                                            OnClipboardChanged?.Invoke(new ClipboardItem { 
-                                                Content = System.IO.Path.GetFileName(firstFile), 
-                                                ImagePath = path, 
-                                                Type = ClipboardItemType.Image, 
-                                                Timestamp = DateTime.Now 
-                                            });
-                                            return;
-                                        }
-                                        else return;
+                                        _lastImageHash = hash;
+
+                                        var item = new ClipboardItem { 
+                                            Content = System.IO.Path.GetFileName(firstFile), 
+                                            ImagePath = _storage.SaveImage(img), // Always save to disk so ViewModel has a path
+                                            Type = ClipboardItemType.Image, 
+                                            Timestamp = DateTime.Now,
+                                            ImageHash = hash
+                                        };
+                                        
+                                        OnClipboardChanged?.Invoke(item);
+                                        return;
                                     }
                                 }
                             }
@@ -216,19 +223,18 @@ namespace ClipboardPro.Services
                             using (capturedImg)
                             {
                                 string hash = ComputeImageHash(capturedImg);
-                                if (hash != _lastImageHash)
-                                {
-                                    _lastImageHash = hash;
-                                    var path = _storage.SaveImage(capturedImg);
-                                    OnClipboardChanged?.Invoke(new ClipboardItem { 
-                                        Content = "Image", 
-                                        ImagePath = path, 
-                                        Type = ClipboardItemType.Image, 
-                                        Timestamp = DateTime.Now 
-                                    });
-                                    return;
-                                }
-                                else return;
+                                _lastImageHash = hash;
+
+                                var item = new ClipboardItem { 
+                                    Content = "Image", 
+                                    ImagePath = _storage.SaveImage(capturedImg), // Always save to disk
+                                    Type = ClipboardItemType.Image, 
+                                    Timestamp = DateTime.Now,
+                                    ImageHash = hash
+                                };
+
+                                OnClipboardChanged?.Invoke(item);
+                                return;
                             }
                         }
 
@@ -310,7 +316,7 @@ namespace ClipboardPro.Services
             }
         }
 
-        private string ComputeImageHash(System.Drawing.Image image)
+        public string ComputeImageHash(System.Drawing.Image image)
         {
             try
             {

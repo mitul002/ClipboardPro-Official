@@ -19,6 +19,12 @@ using WpfColors = System.Windows.Media.Colors;
 
 namespace ClipboardPro.Views
 {
+    public class IconOption
+    {
+        public string Icon { get; set; } = string.Empty;
+        public string Color { get; set; } = string.Empty;
+    }
+
     public class InputDialog : System.Windows.Window
     {
         public string Result { get; private set; } = string.Empty;
@@ -94,38 +100,38 @@ namespace ClipboardPro.Views
             // Icon Picker with Slim Scrollbar
             var options = new[] 
             {
-                new { Icon = "\uE8EC", Color = "#3498db" }, // Tag
-                new { Icon = "\uE8B7", Color = "#f1c40f" }, // Folder
-                new { Icon = "\uE700", Color = "#95a5a6" }, // Menu
-                new { Icon = "\uEB51", Color = "#e74c3c" }, // Heart
-                new { Icon = "\uE734", Color = "#f39c12" }, // Star
-                new { Icon = "\uE753", Color = "#3498db" }, // Cloud
-                new { Icon = "\uE943", Color = "#2ecc71" }, // Code
-                new { Icon = "\uE719", Color = "#16a085" }, // Globe
-                new { Icon = "\uE715", Color = "#9b59b6" }, // Email
-                new { Icon = "\uE71B", Color = "#1abc9c" }, // Link
-                new { Icon = "\uE77B", Color = "#e67e22" }, // Person
-                new { Icon = "\uE712", Color = "#7f8c8d" }, // Cog
-                new { Icon = "\uE8A5", Color = "#2c3e50" }, // Message
-                new { Icon = "\uE179", Color = "#2980b9" }, // List
-                new { Icon = "\uE8A7", Color = "#8e44ad" }, // Tiles
-                new { Icon = "\uE80F", Color = "#e74c3c" }, // Home
-                new { Icon = "\uE710", Color = "#2ecc71" }, // Plus
-                new { Icon = "\uE717", Color = "#3498db" }, // Phone
-                new { Icon = "\uE71A", Color = "#f1c40f" }, // Map
-                new { Icon = "\uE720", Color = "#e67e22" }, // Save
-                new { Icon = "\uE724", Color = "#9b59b6" }, // Lock
-                new { Icon = "\uE735", Color = "#f1c40f" }, // Shopping
-                new { Icon = "\uE74E", Color = "#34495e" }, // Work
-                new { Icon = "\uE7B5", Color = "#e74c3c" }, // Camera
-                new { Icon = "\uE8D6", Color = "#2ecc71" }, // Music
-                new { Icon = "\uE902", Color = "#3498db" }, // Game
-                new { Icon = "\uE945", Color = "#f1c40f" }, // Lightbulb
-                new { Icon = "\uEB4E", Color = "#e67e22" }, // Rocket
-                new { Icon = "\uEC05", Color = "#9b59b6" }, // Trophy
-                new { Icon = "\uED54", Color = "#1abc9c" }, // Diamond
-                new { Icon = "\uE7C4", Color = "#3498db" }, // Task View (Win 10)
-                new { Icon = "\uE8A7", Color = "#2ecc71" }  // Task View (Win 11)
+                new IconOption { Icon = "\uE8EC", Color = "#3498db" }, // Tag
+                new IconOption { Icon = "\uE8B7", Color = "#f1c40f" }, // Folder
+                new IconOption { Icon = "\uE700", Color = "#95a5a6" }, // Menu
+                new IconOption { Icon = "\uEB51", Color = "#e74c3c" }, // Heart
+                new IconOption { Icon = "\uE734", Color = "#f39c12" }, // Star
+                new IconOption { Icon = "\uE753", Color = "#3498db" }, // Cloud
+                new IconOption { Icon = "\uE943", Color = "#2ecc71" }, // Code
+                new IconOption { Icon = "\uE719", Color = "#16a085" }, // Globe
+                new IconOption { Icon = "\uE715", Color = "#9b59b6" }, // Email
+                new IconOption { Icon = "\uE71B", Color = "#1abc9c" }, // Link
+                new IconOption { Icon = "\uE77B", Color = "#e67e22" }, // Person
+                new IconOption { Icon = "\uE712", Color = "#7f8c8d" }, // Cog
+                new IconOption { Icon = "\uE8A5", Color = "#2c3e50" }, // Message
+                new IconOption { Icon = "\uE179", Color = "#2980b9" }, // List
+                new IconOption { Icon = "\uE8A7", Color = "#8e44ad" }, // Tiles
+                new IconOption { Icon = "\uE80F", Color = "#e74c3c" }, // Home
+                new IconOption { Icon = "\uE710", Color = "#2ecc71" }, // Plus
+                new IconOption { Icon = "\uE717", Color = "#3498db" }, // Phone
+                new IconOption { Icon = "\uE71A", Color = "#f1c40f" }, // Map
+                new IconOption { Icon = "\uE720", Color = "#e67e22" }, // Save
+                new IconOption { Icon = "\uE724", Color = "#9b59b6" }, // Lock
+                new IconOption { Icon = "\uE735", Color = "#f1c40f" }, // Shopping
+                new IconOption { Icon = "\uE74E", Color = "#34495e" }, // Work
+                new IconOption { Icon = "\uE7B5", Color = "#e74c3c" }, // Camera
+                new IconOption { Icon = "\uE8D6", Color = "#2ecc71" }, // Music
+                new IconOption { Icon = "\uE902", Color = "#3498db" }, // Game
+                new IconOption { Icon = "\uE945", Color = "#f1c40f" }, // Lightbulb
+                new IconOption { Icon = "\uEB4E", Color = "#e67e22" }, // Rocket
+                new IconOption { Icon = "\uEC05", Color = "#9b59b6" }, // Trophy
+                new IconOption { Icon = "\uED54", Color = "#1abc9c" }, // Diamond
+                new IconOption { Icon = "\uE7C4", Color = "#3498db" }, // Task View (Win 10)
+                new IconOption { Icon = "\uE8A7", Color = "#2ecc71" }  // Task View (Win 11)
             };
 
             var iconCombo = new WpfComboBox
@@ -163,9 +169,8 @@ namespace ClipboardPro.Views
             }
             iconCombo.SelectedIndex = defaultIndex;
             iconCombo.SelectionChanged += (s, e) => {
-                if (iconCombo.SelectedItem is ComboBoxItem selected && selected.Tag != null)
+                if (iconCombo.SelectedItem is ComboBoxItem selected && selected.Tag is IconOption opt)
                 {
-                    dynamic opt = selected.Tag;
                     SelectedIcon = opt.Icon;
                     SelectedColor = opt.Color;
                 }

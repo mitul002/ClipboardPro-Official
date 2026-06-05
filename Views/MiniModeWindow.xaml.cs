@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using ClipboardPro.Models;
 using ClipboardPro.ViewModels;
 using System.Windows.Media;
+using System.ComponentModel;
 using System;
 
 // Explicit WPF aliases to avoid WinForms conflicts
@@ -23,6 +24,9 @@ namespace ClipboardPro.Views
         private int _currentCategoryIndex = 0;
         private System.DateTime _lastCategorySwitch = System.DateTime.MinValue;
 
+        private System.Collections.Specialized.NotifyCollectionChangedEventHandler? _collectionChangedHandler;
+        private PropertyChangedEventHandler? _propertyChangedHandler;
+
         public MiniModeWindow(MainViewModel vm)
         {
             InitializeComponent();
@@ -35,12 +39,10 @@ namespace ClipboardPro.Views
             var screen = System.Windows.Forms.Screen.FromPoint(pos);
             var area = screen.WorkingArea;
 
-            // Get the DPI scale of the window (this works best if window is already on the target screen)
             var dpi = VisualTreeHelper.GetDpi(this);
             double scaleX = dpi.DpiScaleX;
             double scaleY = dpi.DpiScaleY;
 
-            // Convert everything to logical units (DIU)
             double mouseXLogical = pos.X / scaleX;
             double mouseYLogical = pos.Y / scaleY;
             
@@ -49,15 +51,12 @@ namespace ClipboardPro.Views
             double areaRightLogical = area.Right / scaleX;
             double areaBottomLogical = area.Bottom / scaleY;
 
-            // Dimensions in logical units
             double w = this.Width;
             double h = this.Height;
 
-            // Center window on cursor
             double left = mouseXLogical - (w / 2);
             double top = mouseYLogical - (h / 2);
 
-            // Clamp to screen working area with a small padding
             double padding = 8.0;
             if (left < areaLeftLogical + padding) 
                 left = areaLeftLogical + padding;
@@ -84,30 +83,45 @@ namespace ClipboardPro.Views
 
             this.Loaded += (s, e) => 
             {
-                // Register Win32 Hook for horizontal scrolling (Trackpad X-axis)
                 var source = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
                 source?.AddHook(WndProc);
 
                 TxtMiniSearch.Focus();
                 AnimateOpen();
                 
-                // Keep Mini Mode synced with background filter updates
-                _vm.FilteredItems.CollectionChanged += (s2, e2) => LoadItems(TxtMiniSearch.Text);
+                _collectionChangedHandler = (s2, e2) => LoadItems(TxtMiniSearch.Text);
+                _vm.FilteredItems.CollectionChanged += _collectionChangedHandler;
                 
-                // Also listen for filter property changes to catch the start of a filter operation
-                _vm.PropertyChanged += (s2, e2) => {
+                _propertyChangedHandler = (s2, e2) => {
                     if (e2.PropertyName == nameof(MainViewModel.FilteredItems)) {
                         LoadItems(TxtMiniSearch.Text);
                     }
                     if (e2.PropertyName == nameof(MainViewModel.ActiveFilter)) {
-                         // Sync internal index if changed from elsewhere (e.g. Main Window)
                          int index = _availableCategories.IndexOf(_vm.ActiveFilter);
                          if (index >= 0) _currentCategoryIndex = index;
-                         
-                         // Update UI immediately for visual feedback
                          UpdateCategoryUI();
                     }
                 };
+                _vm.PropertyChanged += _propertyChangedHandler;
+            };
+
+            this.Closed += (s, e) =>
+            {
+                if (_collectionChangedHandler != null)
+                {
+                    _vm.FilteredItems.CollectionChanged -= _collectionChangedHandler;
+                }
+                if (_propertyChangedHandler != null)
+                {
+                    _vm.PropertyChanged -= _propertyChangedHandler;
+                }
+
+                try
+                {
+                    var source = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+                    source?.RemoveHook(WndProc);
+                }
+                catch { }
             };
         }
 
@@ -116,12 +130,10 @@ namespace ClipboardPro.Views
         {
             if (msg == WM_MOUSEHWHEEL)
             {
-                // Use ToInt64() to safely handle 64-bit values and avoid overflow
                 long wp = wParam.ToInt64();
                 int tilt = (short)((wp >> 16) & 0xFFFF);
                 if (Math.Abs(tilt) > 10) 
                 {
-                    // Map horizontal swipe to category switching
                     SwitchCategory(tilt > 0 ? 1 : -1);
                     handled = true;
                 }
@@ -137,7 +149,7 @@ namespace ClipboardPro.Views
             double targetOpacity = _vm?.Settings?.WindowOpacity ?? 1.0;
             var fadeAnim = new System.Windows.Media.Animation.DoubleAnimation(targetOpacity, TimeSpan.FromMilliseconds(250));
             fadeAnim.Completed += (s, e) => {
-                BeginAnimation(OpacityProperty, null); // Clear animation to let local value/binding work
+                BeginAnimation(OpacityProperty, null); 
                 Opacity = targetOpacity;
             };
             var slideAnim = new System.Windows.Media.Animation.DoubleAnimation(0, TimeSpan.FromMilliseconds(300))
@@ -164,7 +176,7 @@ namespace ClipboardPro.Views
             RootTransform.BeginAnimation(TranslateTransform.YProperty, slideAnim);
 
             await System.Threading.Tasks.Task.Delay(250);
-            _vm.TrimMemory(); // Force RAM release when mini mode closes
+            _vm.TrimMemory(); 
             Close();
         }
 
@@ -192,16 +204,15 @@ namespace ClipboardPro.Views
             _availableCategories.Add("All Items");
             _availableCategories.Add("Favorites");
             _availableCategories.Add("Pinned");
-            _availableCategories.Add("Image");
-            _availableCategories.Add("Color");
             _availableCategories.Add("URL");
             _availableCategories.Add("Email");
             _availableCategories.Add("Code");
             _availableCategories.Add("Phone");
+            _availableCategories.Add("Image");
+            _availableCategories.Add("Color");
             _availableCategories.Add("Path");
             _availableCategories.Add("Directory");
             _availableCategories.Add("Private");
-            _availableCategories.Add("Received");
 
             if (_vm.Settings?.CustomCategories != null)
             {
@@ -222,6 +233,15 @@ namespace ClipboardPro.Views
             string filter = _availableCategories[_currentCategoryIndex];
             string displayName = filter;
             if (filter.StartsWith("cat:")) displayName = filter.Substring(4);
+            else
+            {
+                displayName = filter switch
+                {
+                    "Color" => "Colors",
+                    "Path" => "File Received",
+                    _ => filter
+                };
+            }
             TxtCurrentCategory.Text = displayName;
         }
 
@@ -229,7 +249,6 @@ namespace ClipboardPro.Views
         {
             if (_availableCategories.Count == 0) return;
             
-            // Cooldown to reduce sensitivity (especially for trackpads)
             if ((System.DateTime.Now - _lastCategorySwitch).TotalMilliseconds < 250) return;
             _lastCategorySwitch = System.DateTime.Now;
 
@@ -251,14 +270,12 @@ namespace ClipboardPro.Views
 
         private void CategorySelector_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            // Prevent window drag when interacting with the selector
             e.Handled = true;
         }
 
         private void CategorySelector_ManipulationCompleted(object sender, System.Windows.Input.ManipulationCompletedEventArgs e)
         {
             var deltaX = e.TotalManipulation.Translation.X;
-            // Increased threshold to 60 for better control
             if (Math.Abs(deltaX) > 60)
             {
                 SwitchCategory(deltaX > 0 ? -1 : 1);
@@ -281,11 +298,9 @@ namespace ClipboardPro.Views
 
         private void LoadItems(string query)
         {
-            // Advanced Filters
             bool filterImages = query.Contains("@image", StringComparison.OrdinalIgnoreCase);
             string actualQuery = filterImages ? query.Replace("@image", "", StringComparison.OrdinalIgnoreCase).Trim() : query;
 
-            // Search: Allocation-free comparison without ToLower()
             var items = _vm.FilteredItems
                 .Where(i => 
                 {
@@ -312,7 +327,6 @@ namespace ClipboardPro.Views
 
         private void PopupItem_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            // If the user clicked a button (Pin/Favorite/Delete), ignore this border-level click
             if (e.OriginalSource is DependencyObject dep)
             {
                 if (FindParent<WpfButton>(dep) != null) return;
@@ -335,7 +349,6 @@ namespace ClipboardPro.Views
             if (sender is WpfButton btn && btn.Tag is ClipboardItem item)
             {
                 item.IsMasked = !item.IsMasked;
-                // No paste/close happens here, satisfying the user's request.
             }
         }
 
@@ -370,7 +383,7 @@ namespace ClipboardPro.Views
                 }
                 
                 _vm.DeleteItem(item);
-                LoadItems(TxtMiniSearch.Text); // Refresh local list
+                LoadItems(TxtMiniSearch.Text); 
             }
         }
 
@@ -380,32 +393,25 @@ namespace ClipboardPro.Views
         private const int KEYEVENTF_KEYUP = 0x0002;
         private const byte VK_CONTROL = 0x11;
         private const byte VK_V = 0x56;
-        private const byte VK_MENU = 0x12; // Alt
+        private const byte VK_MENU = 0x12; 
         private const byte VK_TAB = 0x09;
 
         private async void PasteAndClose(ClipboardItem item)
         {
-            // 1. Set the clipboard to this item
             _vm.CopyItem(item);
-            
-            // 2. Give the clipboard a moment to settle (critical for first-time use)
             await System.Threading.Tasks.Task.Delay(100);
 
             bool isPinned = _vm.Settings.AlwaysOnTop;
 
             if (!isPinned)
             {
-                // Hide immediately to trigger focus return to the previous application
                 this.Hide();
                 AnimateClose();
             }
             
-            // 3. Wait for the focus switch to complete reliably
-            // Increased from 150ms to 400ms for better stability on first use after startup
             bool originalTopmost = this.Topmost;
             await System.Threading.Tasks.Task.Delay(400);
             
-            // 4. Simulate Ctrl+V to paste
             keybd_event(VK_CONTROL, 0, 0, System.UIntPtr.Zero);
             keybd_event(VK_V, 0, 0, System.UIntPtr.Zero);
             await System.Threading.Tasks.Task.Delay(60);
@@ -414,7 +420,7 @@ namespace ClipboardPro.Views
 
             if (isPinned && !_isClosing)
             {
-                await System.Threading.Tasks.Task.Delay(300); // Wait for paste to settle
+                await System.Threading.Tasks.Task.Delay(300); 
                 this.Topmost = originalTopmost;
                 this.Activate(); 
             }

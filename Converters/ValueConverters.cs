@@ -46,10 +46,37 @@ namespace ClipboardPro.Converters
         // Weak-reference cache to avoid loading the same thumbnail multiple times
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, WeakReference<System.Windows.Media.Imaging.BitmapImage>> _cache = new();
 
+        // Strong-reference MRU cache to keep the last 100 images in memory (preventing GC cleanups for virtualized scroll)
+        private static readonly System.Collections.Generic.List<System.Windows.Media.Imaging.BitmapImage> _mruCache = new();
+        private static readonly object _mruLock = new();
+        private const int MaxMruCount = 100;
+
+        private static void AddToMru(System.Windows.Media.Imaging.BitmapImage img)
+        {
+            lock (_mruLock)
+            {
+                _mruCache.Remove(img);
+                _mruCache.Add(img);
+                if (_mruCache.Count > MaxMruCount)
+                {
+                    _mruCache.RemoveAt(0); // Remove oldest
+                }
+            }
+        }
+
         public static void ClearCache(string? fullPath)
         {
             if (!string.IsNullOrEmpty(fullPath))
-                _cache.TryRemove(fullPath, out _);
+            {
+                _cache.TryRemove(fullPath, out var weakRef);
+                if (weakRef != null && weakRef.TryGetTarget(out var img))
+                {
+                    lock (_mruLock)
+                    {
+                        _mruCache.Remove(img);
+                    }
+                }
+            }
         }
 
         public object? Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -68,7 +95,10 @@ namespace ClipboardPro.Converters
 
             // Check cache first
             if (_cache.TryGetValue(fullPath, out var weakRef) && weakRef.TryGetTarget(out var cached))
+            {
+                AddToMru(cached);
                 return cached;
+            }
 
             try
             {
@@ -84,6 +114,7 @@ namespace ClipboardPro.Converters
 
                 // Store in weak-reference cache
                 _cache[fullPath] = new WeakReference<System.Windows.Media.Imaging.BitmapImage>(img);
+                AddToMru(img);
                 return img;
             }
             catch { return null; }
