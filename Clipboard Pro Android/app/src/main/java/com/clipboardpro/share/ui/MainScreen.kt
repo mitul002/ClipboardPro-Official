@@ -1742,15 +1742,6 @@ fun TransferCard(transfer: TransferItem, onDelete: () -> Unit) {
                 Spacer(Modifier.height(4.dp))
                 Text(transfer.sizeDisplay, color = TextMuted, fontSize = 10.sp)
             }
-            // Tap hint for completed files
-            if (transfer.status == TransferStatus.COMPLETED && transfer.fileUri != null) {
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    "Tap to open file",
-                    color = TextMuted.copy(0.6f),
-                    fontSize = 10.sp
-                )
-            }
         }
     }
 }

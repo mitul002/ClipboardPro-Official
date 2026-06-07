@@ -27,6 +27,10 @@ import com.clipboardpro.share.model.ClipboardItemType
 
 class MainActivity : ComponentActivity() {
 
+    private val clipboardListener = android.content.ClipboardManager.OnPrimaryClipChangedListener {
+        checkClipboardAndSave()
+    }
+
     private fun checkClipboardAndSave() {
         try {
             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return
@@ -175,11 +179,30 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         isAppAllowedState.value = com.clipboardpro.share.service.LicenseService(this).isAppAllowed()
+        try {
+            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+            cm?.addPrimaryClipChangedListener(clipboardListener)
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Failed to add clip listener: ${e.localizedMessage}")
+        }
         checkClipboardAndSave()
     }
 
     override fun onPause() {
         super.onPause()
+        try {
+            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+            cm?.removePrimaryClipChangedListener(clipboardListener)
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Failed to remove clip listener: ${e.localizedMessage}")
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            checkClipboardAndSave()
+        }
     }
 
     override fun onDestroy() {
