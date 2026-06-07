@@ -447,7 +447,7 @@
                                     CornerRadius="8">
                                 <Grid>
                                     <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
-                                                  VerticalAlignment="Stretch" Style="{DynamicResource SlimScrollViewer}"/>
+                                                  VerticalAlignment="Center" Style="{DynamicResource SlimScrollViewer}"/>
                                     <TextBlock x:Name="placeholder" 
                                                Text="{TemplateBinding Tag}" 
                                                Foreground="{DynamicResource TextMuted}" 
