@@ -330,26 +330,28 @@ fun SettingsScreen(
                     confirmButton = {
                         Button(
                             onClick = {
-                                val file = tempBackupFile ?: return@Button
-                                showRestoreDialog = false
-                                scope.launch(Dispatchers.IO) {
-                                    try {
-                                        val db = AppDatabase.getDatabase(context)
-                                        val sDb = db.openHelper.writableDatabase
-                                        sDb.execSQL("ATTACH DATABASE '${file.absolutePath}' AS temp_db")
-                                        sDb.execSQL("INSERT OR IGNORE INTO main.ClipboardItems SELECT * FROM temp_db.ClipboardItems")
+                                val file = tempBackupFile
+                                if (file != null) {
+                                    showRestoreDialog = false
+                                    scope.launch(Dispatchers.IO) {
                                         try {
-                                            sDb.execSQL("INSERT OR IGNORE INTO main.SnippetItems SELECT * FROM temp_db.SnippetItems")
-                                        } catch (e: Exception) { }
-                                        sDb.execSQL("DETACH DATABASE temp_db")
-                                        
-                                        file.parentFile?.deleteRecursively()
-                                        withContext(Dispatchers.Main) {
-                                            Toast.makeText(context, "Backup merged successfully!", Toast.LENGTH_LONG).show()
-                                        }
-                                    } catch (e: Exception) {
-                                        withContext(Dispatchers.Main) {
-                                            Toast.makeText(context, "Merge failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                            val db = AppDatabase.getDatabase(context)
+                                            val sDb = db.openHelper.writableDatabase
+                                            sDb.execSQL("ATTACH DATABASE '${file.absolutePath}' AS temp_db")
+                                            sDb.execSQL("INSERT OR IGNORE INTO main.ClipboardItems SELECT * FROM temp_db.ClipboardItems")
+                                            try {
+                                                sDb.execSQL("INSERT OR IGNORE INTO main.SnippetItems SELECT * FROM temp_db.SnippetItems")
+                                            } catch (e: Exception) { }
+                                            sDb.execSQL("DETACH DATABASE temp_db")
+                                            
+                                            file.parentFile?.deleteRecursively()
+                                            withContext(Dispatchers.Main) {
+                                                Toast.makeText(context, "Backup merged successfully!", Toast.LENGTH_LONG).show()
+                                            }
+                                        } catch (e: Exception) {
+                                            withContext(Dispatchers.Main) {
+                                                Toast.makeText(context, "Merge failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                            }
                                         }
                                     }
                                 }
@@ -364,38 +366,40 @@ fun SettingsScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton(
                                 onClick = {
-                                    val file = tempBackupFile ?: return@TextButton
-                                    showRestoreDialog = false
-                                    scope.launch(Dispatchers.IO) {
-                                        try {
-                                            val currentDbFile = context.getDatabasePath("app_database")
-                                            val currentDbWal = context.getDatabasePath("app_database-wal")
-                                            val currentDbShm = context.getDatabasePath("app_database-shm")
-                                            
-                                            AppDatabase.getDatabase(context).close()
-                                            
-                                            currentDbFile.delete()
-                                            currentDbWal.delete()
-                                            currentDbShm.delete()
-                                            
-                                            file.copyTo(currentDbFile, overwrite = true)
-                                            
-                                            val backupWal = File(file.parentFile, "app_database-wal")
-                                            if (backupWal.exists()) {
-                                                backupWal.copyTo(currentDbWal, overwrite = true)
-                                            }
-                                            val backupShm = File(file.parentFile, "app_database-shm")
-                                            if (backupShm.exists()) {
-                                                backupShm.copyTo(currentDbShm, overwrite = true)
-                                            }
-                                            
-                                            file.parentFile?.deleteRecursively()
-                                            withContext(Dispatchers.Main) {
-                                                Toast.makeText(context, "Database replaced! Please restart the app.", Toast.LENGTH_LONG).show()
-                                            }
-                                        } catch (e: Exception) {
-                                            withContext(Dispatchers.Main) {
-                                                Toast.makeText(context, "Replacement failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                    val file = tempBackupFile
+                                    if (file != null) {
+                                        showRestoreDialog = false
+                                        scope.launch(Dispatchers.IO) {
+                                            try {
+                                                val currentDbFile = context.getDatabasePath("app_database")
+                                                val currentDbWal = context.getDatabasePath("app_database-wal")
+                                                val currentDbShm = context.getDatabasePath("app_database-shm")
+                                                
+                                                AppDatabase.getDatabase(context).close()
+                                                
+                                                currentDbFile.delete()
+                                                currentDbWal.delete()
+                                                currentDbShm.delete()
+                                                
+                                                file.copyTo(currentDbFile, overwrite = true)
+                                                
+                                                val backupWal = File(file.parentFile, "app_database-wal")
+                                                if (backupWal.exists()) {
+                                                    backupWal.copyTo(currentDbWal, overwrite = true)
+                                                }
+                                                val backupShm = File(file.parentFile, "app_database-shm")
+                                                if (backupShm.exists()) {
+                                                    backupShm.copyTo(currentDbShm, overwrite = true)
+                                                }
+                                                
+                                                file.parentFile?.deleteRecursively()
+                                                withContext(Dispatchers.Main) {
+                                                    Toast.makeText(context, "Database replaced! Please restart the app.", Toast.LENGTH_LONG).show()
+                                                }
+                                            } catch (e: Exception) {
+                                                withContext(Dispatchers.Main) {
+                                                    Toast.makeText(context, "Replacement failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                }
                                             }
                                         }
                                     }
