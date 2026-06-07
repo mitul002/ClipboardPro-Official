@@ -40,13 +40,21 @@ fun getAutoClipboard(ctx: Context): Boolean =
 fun setAutoClipboard(ctx: Context, v: Boolean) =
     getPrefs(ctx).edit().putBoolean("auto_clipboard", v).apply()
 
+fun setThemeMode(ctx: Context, mode: String) =
+    getPrefs(ctx).edit().putString("theme_mode", mode).apply()
+
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen(
+    themeMode: String,
+    onThemeModeChanged: (String) -> Unit,
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
     var saveFolder by remember { mutableStateOf(getSaveFolder(context)) }
     var autoClipboard by remember { mutableStateOf(getAutoClipboard(context)) }
     var showFolderDialog by remember { mutableStateOf(false) }
     var customFolderInput by remember { mutableStateOf(saveFolder) }
+    var showThemeDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -97,6 +105,21 @@ fun SettingsScreen(onBack: () -> Unit) {
                     autoClipboard = it
                     setAutoClipboard(context, it)
                 }
+            )
+
+            SettingSectionLabel("APPEARANCE")
+
+            // Theme Mode
+            val themeLabel = when (themeMode) {
+                "light" -> "Light Theme"
+                "dark" -> "Dark Theme"
+                else -> "System Default"
+            }
+            SettingCard(
+                icon = Icons.Rounded.Palette,
+                title = "Theme Mode",
+                subtitle = themeLabel,
+                onClick = { showThemeDialog = true }
             )
 
             SettingSectionLabel("ABOUT")
@@ -223,6 +246,49 @@ fun SettingsScreen(onBack: () -> Unit) {
                     Text("Cancel", color = TextMuted)
                 }
             }
+        )
+    }
+
+    if (showThemeDialog) {
+        AlertDialog(
+            onDismissRequest = { showThemeDialog = false },
+            title = { Text("Select Theme Mode", color = TextPrimary, fontWeight = FontWeight.Bold) },
+            containerColor = CardBg,
+            textContentColor = TextPrimary,
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("system" to "System Default", "light" to "Light Theme", "dark" to "Dark Theme").forEach { (value, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    onThemeModeChanged(value)
+                                    setThemeMode(context, value)
+                                    showThemeDialog = false
+                                }
+                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = (themeMode == value),
+                                onClick = {
+                                    onThemeModeChanged(value)
+                                    setThemeMode(context, value)
+                                    showThemeDialog = false
+                                },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = Teal400,
+                                    unselectedColor = TextMuted
+                                )
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(label, color = TextPrimary, fontSize = 14.sp)
+                        }
+                    }
+                }
+            },
+            confirmButton = {}
         )
     }
 }

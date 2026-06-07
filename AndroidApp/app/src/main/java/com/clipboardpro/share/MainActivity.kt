@@ -47,10 +47,20 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         requestRequiredPermissions()
         setContent {
-            ClipboardProTheme {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            var themeMode by remember {
+                mutableStateOf(
+                    context.getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
+                        .getString("theme_mode", "system") ?: "system"
+                )
+            }
+
+            ClipboardProTheme(themeMode = themeMode) {
                 MainScreen(
                     serviceProvider = { shareService },
-                    isServiceBound = isServiceBound
+                    isServiceBound = isServiceBound,
+                    themeMode = themeMode,
+                    onThemeModeChanged = { newMode -> themeMode = newMode }
                 )
             }
         }

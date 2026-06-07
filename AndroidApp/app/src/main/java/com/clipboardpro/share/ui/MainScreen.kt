@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -50,7 +51,9 @@ import java.io.File
 @Composable
 fun MainScreen(
     serviceProvider: () -> LocalShareService?,
-    isServiceBound: Boolean
+    isServiceBound: Boolean,
+    themeMode: String,
+    onThemeModeChanged: (String) -> Unit
 ) {
     val service = serviceProvider()
     val peers by (service?.peers ?: emptyFlow<List<PeerDevice>>()).collectAsState(initial = emptyList())
@@ -81,7 +84,11 @@ fun MainScreen(
         label = "nav"
     ) { inSettings ->
         if (inSettings) {
-            SettingsScreen(onBack = { showSettings = false })
+            SettingsScreen(
+                themeMode = themeMode,
+                onThemeModeChanged = onThemeModeChanged,
+                onBack = { showSettings = false }
+            )
         } else {
             Scaffold(
                 containerColor = DarkBg,
@@ -319,6 +326,14 @@ fun DevicesTab(
 
 @Composable
 fun PeerCard(peer: PeerDevice, isSelected: Boolean, onClick: () -> Unit) {
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.02f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "scale"
+    )
     val borderColor by animateColorAsState(
         if (isSelected) Teal400 else BorderColor, label = "border"
     )
@@ -327,7 +342,13 @@ fun PeerCard(peer: PeerDevice, isSelected: Boolean, onClick: () -> Unit) {
     )
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().border(1.5.dp, borderColor, RoundedCornerShape(14.dp)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .border(1.5.dp, borderColor, RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = bgColor),
         elevation = CardDefaults.cardElevation(if (isSelected) 4.dp else 0.dp)
@@ -472,6 +493,40 @@ fun SendPanel(
 }
 
 @Composable
+fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        placeholder = { Text(placeholder, color = TextMuted, fontSize = 13.sp) },
+        modifier = modifier.fillMaxWidth(),
+        leadingIcon = { Icon(Icons.Rounded.Search, null, tint = TextMuted, modifier = Modifier.size(18.dp)) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Rounded.Clear, null, tint = TextMuted, modifier = Modifier.size(18.dp))
+                }
+            }
+        },
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = TextPrimary,
+            unfocusedTextColor = TextPrimary,
+            focusedBorderColor = Teal400,
+            unfocusedBorderColor = BorderColor,
+            cursorColor = Teal400,
+            focusedContainerColor = CardBg,
+            unfocusedContainerColor = CardBg
+        ),
+        shape = RoundedCornerShape(12.dp)
+    )
+}
+
+@Composable
 fun ReceivedTextsTab(
     receivedTexts: List<Pair<String, String>>,
     peers: List<PeerDevice>,
@@ -479,6 +534,16 @@ fun ReceivedTextsTab(
     onClearAllTexts: () -> Unit
 ) {
     val context = LocalContext.current
+    var searchQuery by remember { mutableStateOf("") }
+    
+    val filteredTexts = remember(receivedTexts, searchQuery, peers) {
+        if (searchQuery.isBlank()) receivedTexts
+        else receivedTexts.filter { (text, from) ->
+            val displayName = peers.find { it.ip == from }?.name ?: from
+            text.contains(searchQuery, ignoreCase = true) || displayName.contains(searchQuery, ignoreCase = true)
+        }
+    }
+
     if (receivedTexts.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -491,10 +556,20 @@ fun ReceivedTextsTab(
         }
         return
     }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        item {
+            SearchBar(
+                query = searchQuery,
+                onQueryChange = { searchQuery = it },
+                placeholder = "Search received texts..."
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+
         item {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp, start = 4.dp),
@@ -505,54 +580,66 @@ fun ReceivedTextsTab(
                     "RECEIVED TEXTS", color = TextMuted, fontSize = 10.sp,
                     fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp
                 )
-                Text(
-                    "Clear All",
-                    color = Teal400,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { onClearAllTexts() }
-                )
+                if (filteredTexts.isNotEmpty()) {
+                    Text(
+                        "Clear All",
+                        color = Teal400,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable { onClearAllTexts() }
+                    )
+                }
             }
         }
-        items(receivedTexts.reversed()) { item ->
-            val (text, from) = item
-            val displayName = peers.find { it.ip == from }?.name ?: from
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBg),
-                border = BorderStroke(1.dp, BorderColor)
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.Computer, null, tint = Teal400, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(displayName, color = Teal400, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.weight(1f))
-                        IconButton(
-                            onClick = {
-                                val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                cb.setPrimaryClip(ClipData.newPlainText("text", text))
-                            },
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(Icons.Rounded.ContentCopy, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+
+        if (filteredTexts.isEmpty()) {
+            item {
+                Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
+                    Text("No matching texts found", color = TextMuted, fontSize = 13.sp)
+                }
+            }
+        } else {
+            items(filteredTexts.reversed()) { item ->
+                val (text, from) = item
+                val displayName = peers.find { it.ip == from }?.name ?: from
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardBg),
+                    border = BorderStroke(1.dp, BorderColor)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.Computer, null, tint = Teal400, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(displayName, color = Teal400, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Spacer(Modifier.weight(1f))
+                            IconButton(
+                                onClick = {
+                                    val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    cb.setPrimaryClip(ClipData.newPlainText("text", text))
+                                    Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(Icons.Rounded.ContentCopy, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+                            }
+                            Spacer(Modifier.width(4.dp))
+                            IconButton(
+                                onClick = { onDeleteText(item) },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Delete,
+                                    contentDescription = "Delete",
+                                    tint = DangerRed.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
-                        Spacer(Modifier.width(4.dp))
-                        IconButton(
-                            onClick = { onDeleteText(item) },
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(
-                                Icons.Rounded.Delete,
-                                contentDescription = "Delete",
-                                tint = DangerRed.copy(alpha = 0.8f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(text = text, color = TextPrimary, fontSize = 14.sp)
                     }
-                    Spacer(Modifier.height(8.dp))
-                    Text(text, color = TextPrimary, fontSize = 14.sp)
                 }
             }
         }
@@ -618,6 +705,14 @@ fun TransfersTab(
     onDeleteTransfer: (String) -> Unit,
     onClearAllTransfers: () -> Unit
 ) {
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredTransfers = remember(transfers, searchQuery) {
+        if (searchQuery.isBlank()) transfers
+        else transfers.filter {
+            it.fileName.contains(searchQuery, ignoreCase = true) || it.peerName.contains(searchQuery, ignoreCase = true)
+        }
+    }
+
     if (transfers.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -628,10 +723,20 @@ fun TransfersTab(
         }
         return
     }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        item {
+            SearchBar(
+                query = searchQuery,
+                onQueryChange = { searchQuery = it },
+                placeholder = "Search transfers..."
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+
         item {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp, start = 4.dp),
@@ -642,20 +747,31 @@ fun TransfersTab(
                     "TRANSFER HISTORY", color = TextMuted, fontSize = 10.sp,
                     fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp
                 )
-                Text(
-                    "Clear All",
-                    color = Teal400,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { onClearAllTransfers() }
-                )
+                if (filteredTransfers.isNotEmpty()) {
+                    Text(
+                        "Clear All",
+                        color = Teal400,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable { onClearAllTransfers() }
+                    )
+                }
             }
         }
-        items(transfers, key = { it.id }) { t ->
-            TransferCard(
-                transfer = t,
-                onDelete = { onDeleteTransfer(t.id) }
-            )
+
+        if (filteredTransfers.isEmpty()) {
+            item {
+                Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
+                    Text("No matching transfers found", color = TextMuted, fontSize = 13.sp)
+                }
+            }
+        } else {
+            items(filteredTransfers, key = { it.id }) { t ->
+                TransferCard(
+                    transfer = t,
+                    onDelete = { onDeleteTransfer(t.id) }
+                )
+            }
         }
     }
 }
@@ -751,6 +867,12 @@ fun ClipboardTab(
     onSendText: (String) -> Unit
 ) {
     val context = LocalContext.current
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredHistory = remember(history, searchQuery) {
+        if (searchQuery.isBlank()) history
+        else history.filter { it.contains(searchQuery, ignoreCase = true) }
+    }
+
     if (history.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -763,10 +885,20 @@ fun ClipboardTab(
         }
         return
     }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        item {
+            SearchBar(
+                query = searchQuery,
+                onQueryChange = { searchQuery = it },
+                placeholder = "Search clipboard..."
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+
         if (selectedPeer == null) {
             item {
                 Card(
@@ -799,61 +931,72 @@ fun ClipboardTab(
                     "CLIPBOARD HISTORY", color = TextMuted, fontSize = 10.sp,
                     fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp
                 )
-                Text(
-                    "Clear All",
-                    color = Teal400,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { onClearAll() }
-                )
+                if (filteredHistory.isNotEmpty()) {
+                    Text(
+                        "Clear All",
+                        color = Teal400,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable { onClearAll() }
+                    )
+                }
             }
         }
-        items(history, key = { it }) { text ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBg),
-                border = BorderStroke(1.dp, BorderColor)
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.ContentPaste, null, tint = Teal400, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Copied Text", color = Teal400, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.weight(1f))
-                        IconButton(
-                            onClick = { onCopyText(text) },
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(Icons.Rounded.ContentCopy, null, tint = TextMuted, modifier = Modifier.size(16.dp))
-                        }
-                        if (selectedPeer != null) {
-                            Spacer(Modifier.width(4.dp))
+
+        if (filteredHistory.isEmpty()) {
+            item {
+                Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
+                    Text("No matching items found", color = TextMuted, fontSize = 13.sp)
+                }
+            }
+        } else {
+            items(filteredHistory, key = { it }) { text ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardBg),
+                    border = BorderStroke(1.dp, BorderColor)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.ContentPaste, null, tint = Teal400, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Copied Text", color = Teal400, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Spacer(Modifier.weight(1f))
                             IconButton(
-                                onClick = { onSendText(text) },
+                                onClick = { onCopyText(text) },
                                 modifier = Modifier.size(28.dp)
                             ) {
-                                Icon(Icons.Rounded.Send, null, tint = TealGlow, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Rounded.ContentCopy, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+                            }
+                            if (selectedPeer != null) {
+                                Spacer(Modifier.width(4.dp))
+                                IconButton(
+                                    onClick = { onSendText(text) },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(Icons.Rounded.Send, null, tint = TealGlow, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                            Spacer(Modifier.width(4.dp))
+                            IconButton(
+                                onClick = { onDeleteText(text) },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Delete,
+                                    contentDescription = "Delete",
+                                    tint = DangerRed.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(16.dp)
+                                )
                             }
                         }
-                        Spacer(Modifier.width(4.dp))
-                        IconButton(
-                            onClick = { onDeleteText(text) },
-                            modifier = Modifier.size(28.dp)
-                        ) {
-                            Icon(
-                                Icons.Rounded.Delete,
-                                contentDescription = "Delete",
-                                tint = DangerRed.copy(alpha = 0.8f),
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = text, color = TextPrimary, fontSize = 14.sp,
+                            maxLines = 5, overflow = TextOverflow.Ellipsis
+                        )
                     }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = text, color = TextPrimary, fontSize = 14.sp,
-                        maxLines = 5, overflow = TextOverflow.Ellipsis
-                    )
                 }
             }
         }
