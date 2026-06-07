@@ -189,7 +189,7 @@ fun LicenseGateScreen(
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Request Transfer", color = DarkBg, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Request Transfer", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                     }
 
@@ -219,7 +219,7 @@ fun LicenseGateScreen(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Activate License", color = DarkBg, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Activate License", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
             }

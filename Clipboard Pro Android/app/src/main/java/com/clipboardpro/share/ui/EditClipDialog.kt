@@ -178,7 +178,7 @@ fun EditClipDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = Teal400),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text("Save", color = DarkBg, fontWeight = FontWeight.Bold)
+                Text("Save", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {

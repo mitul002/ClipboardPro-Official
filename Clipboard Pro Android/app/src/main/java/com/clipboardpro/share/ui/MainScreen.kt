@@ -396,7 +396,7 @@ fun AppBottomBar(selectedTab: Int, transferCount: Int, onTabSelected: (Int) -> U
                 BadgedBox(badge = {
                     if (transferCount > 0)
                         Badge(containerColor = Teal400) {
-                            Text("$transferCount", fontSize = 9.sp, color = DarkBg)
+                            Text("$transferCount", fontSize = 9.sp, color = Color.White)
                         }
                 }) { Icon(Icons.Rounded.SwapVert, null) }
             },
@@ -775,9 +775,9 @@ fun VaultCard(
                         colors = ButtonDefaults.buttonColors(containerColor = Teal400),
                         modifier = Modifier.height(30.dp)
                     ) {
-                        Icon(Icons.Rounded.Send, null, tint = DarkBg, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Rounded.Send, null, tint = Color.White, modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Send", color = DarkBg, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("Send", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -837,7 +837,7 @@ fun VaultCard(
                         showPrettifyDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Teal400)
-                ) { Text("Copy", color = DarkBg, fontWeight = FontWeight.Bold) }
+                ) { Text("Copy", color = Color.White, fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
                 TextButton(onClick = { showPrettifyDialog = false }) { Text("Close", color = TextMuted) }
@@ -1065,7 +1065,7 @@ fun AddSnippetDialog(
                 enabled = trigger.isNotBlank() && content.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = Teal400)
             ) {
-                Text("Save", color = DarkBg, fontWeight = FontWeight.Bold)
+                Text("Save", color = Color.White, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -1150,7 +1150,7 @@ fun EditSnippetDialog(
                 onClick = { onSave(trigger, content, desc) },
                 enabled = trigger.isNotBlank() && content.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = Teal400)
-            ) { Text("Save", color = DarkBg, fontWeight = FontWeight.Bold) }
+            ) { Text("Save", color = Color.White, fontWeight = FontWeight.Bold) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel", color = TextMuted) }
@@ -1278,7 +1278,7 @@ fun DevicesTab(
                                 Icon(
                                     Icons.Rounded.Send, null,
                                     modifier = Modifier.size(18.dp),
-                                    tint = if (textInput.isNotBlank()) DarkBg else TextMuted
+                                    tint = if (textInput.isNotBlank()) Color.White else TextMuted
                                 )
                             }
                         }
@@ -1294,9 +1294,9 @@ fun DevicesTab(
                                 shape = RoundedCornerShape(12.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = Teal400)
                             ) {
-                                Icon(Icons.Rounded.UploadFile, null, modifier = Modifier.size(18.dp), tint = DarkBg)
+                                Icon(Icons.Rounded.UploadFile, null, modifier = Modifier.size(18.dp), tint = Color.White)
                                 Spacer(Modifier.width(6.dp))
-                                Text("Send File", fontWeight = FontWeight.SemiBold, color = DarkBg, fontSize = 13.sp)
+                                Text("Send File", fontWeight = FontWeight.SemiBold, color = Color.White, fontSize = 13.sp)
                             }
                             OutlinedButton(
                                 onClick = { peer?.let { onSendClipboard(it) } },
@@ -1660,9 +1660,9 @@ fun TransferCard(transfer: TransferItem, onDelete: () -> Unit) {
                             colors = ButtonDefaults.buttonColors(containerColor = Teal400),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Rounded.Launch, null, tint = DarkBg, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Rounded.Launch, null, tint = Color.White, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Open File", color = DarkBg, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("Open File", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }
                         
                         OutlinedButton(

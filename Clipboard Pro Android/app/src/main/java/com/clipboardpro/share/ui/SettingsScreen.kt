@@ -356,7 +356,7 @@ fun SettingsScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = Teal400),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text("Merge", color = DarkBg, fontWeight = FontWeight.Bold)
+                            Text("Merge", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     },
                     dismissButton = {
@@ -468,7 +468,7 @@ fun SettingsScreen(
                     }
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "ClipboardPro Local Share",
+                        text = "Clipboard Pro",
                         color = TextPrimary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
@@ -556,7 +556,7 @@ fun SettingsScreen(
                         showFolderDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Teal400)
-                ) { Text("Save", color = DarkBg, fontWeight = FontWeight.Bold) }
+                ) { Text("Save", color = Color.White, fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
                 TextButton(onClick = { showFolderDialog = false }) {
@@ -638,7 +638,7 @@ fun SettingsScreen(
                         showMaxHistoryDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Teal400)
-                ) { Text("Save", color = DarkBg, fontWeight = FontWeight.Bold) }
+                ) { Text("Save", color = Color.White, fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
                 TextButton(onClick = { showMaxHistoryDialog = false }) {
@@ -758,7 +758,7 @@ fun SettingsScreen(
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = WarningAmber)
                             ) {
-                                Text("Transfer", color = DarkBg, fontWeight = FontWeight.Bold)
+                                Text("Transfer", color = Color.White, fontWeight = FontWeight.Bold)
                             }
                         }
 
@@ -789,9 +789,9 @@ fun SettingsScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = Teal400)
                         ) {
                             if (isLoading) {
-                                CircularProgressIndicator(color = DarkBg, modifier = Modifier.size(16.dp))
+                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp))
                             } else {
-                                Text("Activate", color = DarkBg, fontWeight = FontWeight.Bold)
+                                Text("Activate", color = Color.White, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

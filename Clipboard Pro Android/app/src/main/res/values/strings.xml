@@ -3,4 +3,5 @@
     <string name="app_name">Clipboard Pro</string>
     <string name="notification_channel_name">Clipboard Pro</string>
     <string name="notification_searching">Scanning for nearby devices...</string>
+    <string name="accessibility_desc">Provides seamless and automated text expansion for defined abbreviations, allowing you to type short triggers and expand them to long text instantly.</string>
 </resources>

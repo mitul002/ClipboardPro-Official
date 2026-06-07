@@ -25,6 +25,7 @@ class TextExpanderService : AccessibilityService() {
     private var snippetsList = listOf<SnippetItemEntity>()
     private var lastExpandedText = ""
     private var lastTrigger = ""
+    private var lastContentLength = 0
     private var isExpanding = false
 
     override fun onCreate() {
@@ -38,6 +39,20 @@ class TextExpanderService : AccessibilityService() {
                 Log.d(TAG, "Loaded ${list.size} snippets for expansion.")
             }
         }
+    }
+
+    private fun getCleanTrigger(trigger: String): String {
+        if (trigger.isEmpty()) return ""
+        var start = 0
+        while (start < trigger.length && !trigger[start].isLetterOrDigit()) {
+            start++
+        }
+        var end = trigger.length - 1
+        while (end >= start && !trigger[end].isLetterOrDigit()) {
+            end--
+        }
+        if (start > end) return trigger
+        return trigger.substring(start, end + 1)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
@@ -62,7 +77,14 @@ class TextExpanderService : AccessibilityService() {
         if (lastExpandedText.isNotEmpty() && text == lastExpandedText.dropLast(1)) {
             // Revert expansion back to clean trigger
             isExpanding = true
-            val restoredText = text.substring(0, text.length - (lastExpandedText.length - 1 - lastTrigger.length)) + lastTrigger
+            val prefixLength = lastExpandedText.length - lastContentLength
+            val prefix = if (prefixLength in 0..lastExpandedText.length) {
+                lastExpandedText.substring(0, prefixLength)
+            } else {
+                ""
+            }
+            val cleanTrigger = getCleanTrigger(lastTrigger)
+            val restoredText = prefix + cleanTrigger
             val arguments = Bundle().apply {
                 putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, restoredText)
             }
@@ -76,6 +98,7 @@ class TextExpanderService : AccessibilityService() {
             
             lastExpandedText = ""
             lastTrigger = ""
+            lastContentLength = 0
             isExpanding = false
             sourceNode.recycle()
             return
@@ -104,6 +127,7 @@ class TextExpanderService : AccessibilityService() {
                 // Arm undo state
                 lastTrigger = trigger
                 lastExpandedText = newText
+                lastContentLength = snippet.content.length
 
                 isExpanding = false
                 break
