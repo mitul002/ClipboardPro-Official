@@ -30,8 +30,11 @@ jobs:
       run: ./gradlew assembleDebug
       working-directory: "Clipboard Pro Android"
 
+    - name: Rename APK to ClipboardPro.apk
+      run: mv "Clipboard Pro Android/app/build/outputs/apk/debug/app-debug.apk" "Clipboard Pro Android/app/build/outputs/apk/debug/ClipboardPro.apk"
+
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug-apk
-        path: Clipboard Pro Android/app/build/outputs/apk/debug/app-debug.apk
+        name: ClipboardPro
+        path: Clipboard Pro Android/app/build/outputs/apk/debug/ClipboardPro.apk

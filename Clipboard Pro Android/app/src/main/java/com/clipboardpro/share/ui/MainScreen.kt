@@ -1620,8 +1620,32 @@ fun TransferCard(transfer: TransferItem, onDelete: () -> Unit) {
         TransferStatus.ACTIVE -> Teal400
         else -> TextMuted
     }
-    val dirIcon = if (transfer.direction == TransferDirection.SEND)
-        Icons.Rounded.Upload else Icons.Rounded.Download
+
+    // Type-aware icon — infer from file extension since TransferItem doesn't carry type
+    val ext = transfer.fileName.substringAfterLast('.', "").lowercase()
+    val (typeIcon, typeColor) = when {
+        ext in setOf("jpg", "jpeg", "png", "gif", "bmp", "webp", "svg") ->
+            Icons.Rounded.Image to SuccessGreen
+        ext in setOf("mp4", "mov", "avi", "mkv", "webm") ->
+            Icons.Rounded.Videocam to WarningAmber
+        ext in setOf("mp3", "wav", "ogg", "flac", "aac") ->
+            Icons.Rounded.MusicNote to Blue400
+        ext in setOf("pdf") ->
+            Icons.Rounded.PictureAsPdf to DangerRed
+        ext in setOf("zip", "rar", "7z", "tar", "gz") ->
+            Icons.Rounded.FolderZip to WarningAmber
+        ext in setOf("kt", "java", "py", "js", "ts", "html", "css", "xml", "json", "c", "cpp", "cs", "sh") ->
+            Icons.Rounded.Code to WarningAmber
+        ext in setOf("txt", "md", "log", "csv") ->
+            Icons.Rounded.Article to Teal400
+        ext in setOf("apk") ->
+            Icons.Rounded.Android to SuccessGreen
+        transfer.fileName == transfer.fileName && transfer.totalBytes == 0L ->
+            // Likely a text transfer (no file bytes)
+            Icons.Rounded.TextFields to Teal400
+        else ->
+            Icons.Rounded.InsertDriveFile to TextMuted
+    }
 
     Card(
         modifier = Modifier
@@ -1635,12 +1659,31 @@ fun TransferCard(transfer: TransferItem, onDelete: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.size(38.dp).clip(RoundedCornerShape(10.dp))
-                        .background(statusColor.copy(0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(dirIcon, null, tint = statusColor, modifier = Modifier.size(20.dp))
+                // Type icon with direction badge overlay
+                Box(contentAlignment = Alignment.BottomEnd) {
+                    Box(
+                        Modifier.size(40.dp).clip(RoundedCornerShape(10.dp))
+                            .background(typeColor.copy(0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(typeIcon, null, tint = typeColor, modifier = Modifier.size(22.dp))
+                    }
+                    // Small direction badge (↑ send / ↓ receive)
+                    Box(
+                        Modifier
+                            .size(16.dp)
+                            .clip(CircleShape)
+                            .background(if (transfer.direction == TransferDirection.SEND) Teal400 else SuccessGreen),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (transfer.direction == TransferDirection.SEND)
+                                Icons.Rounded.Upload else Icons.Rounded.Download,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(10.dp)
+                        )
+                    }
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {

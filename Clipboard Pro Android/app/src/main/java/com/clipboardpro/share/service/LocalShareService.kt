@@ -6,7 +6,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -155,37 +154,7 @@ class LocalShareService : Service() {
         }
     }
 
-    // Tracks the last clip label we set ourselves so we can ignore our own events
-    @Volatile private var lastSelfSetClipLabel: String? = null
 
-    private fun handleClipboardChange(clipboardManager: ClipboardManager) {
-        scope.launch(Dispatchers.IO) {
-            try {
-                val clip = try { clipboardManager.primaryClip } catch (e: Exception) { null }
-                if (clip == null || clip.itemCount == 0) return@launch
-
-                val clipLabel = clip.description?.label?.toString() ?: ""
-
-                // Ignore clipboard events that we set ourselves (from received texts or user copy)
-                if (clipLabel == "ClipboardPro Sync" || clipLabel == lastSelfSetClipLabel) return@launch
-
-                val item = clip.getItemAt(0)
-                val text = item?.text?.toString()
-                val uri = item?.uri
-
-                if (!text.isNullOrBlank()) {
-                    addClipboardItem(text)
-                } else if (uri != null) {
-                    val typeStr = try { contentResolver.getType(uri) } catch (e: Exception) { null } ?: ""
-                    if (typeStr.startsWith("image/") || uri.path?.endsWith(".png") == true || uri.path?.endsWith(".jpg") == true) {
-                        processClipboardImage(uri)
-                    }
-                }
-            } catch (e: Throwable) {
-                Log.e(TAG, "Error handling clipboard change: ${e.localizedMessage}")
-            }
-        }
-    }
 
     private fun processClipboardImage(uri: Uri) {
         scope.launch(Dispatchers.IO) {
@@ -243,18 +212,17 @@ class LocalShareService : Service() {
     override fun onCreate() {
         super.onCreate()
         database = AppDatabase.getDatabase(this)
-        
+
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification("Scanning for nearby devices..."))
 
-        val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboardManager.addPrimaryClipChangedListener {
-            handleClipboardChange(clipboardManager)
-        }
+        // Clipboard monitoring is handled by TextExpanderService (Accessibility Service),
+        // which can read the clipboard in background on Android 10+.
+        // This service only saves items sent explicitly via addClipboardItem().
 
         acquireMulticastLock()
         initNetworking()
-        Log.i(TAG, "LocalShareService started with Room database.")
+        Log.i(TAG, "LocalShareService started.")
     }
 
     private fun acquireMulticastLock() {
@@ -281,17 +249,19 @@ class LocalShareService : Service() {
                     val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
                     val autoClip = prefs.getBoolean("auto_clipboard", true)
                     if (autoClip) {
-                        try {
-                            // Mark that we are about to set the clipboard ourselves so the listener ignores it
-                            lastSelfSetClipLabel = "ClipboardPro Sync"
-                            val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboardManager.setPrimaryClip(ClipData.newPlainText("ClipboardPro Sync", text))
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Failed to set clipboard: ${e.localizedMessage}")
+                        // Set clipboard on Main thread — required by Android
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            try {
+                                val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                cm.setPrimaryClip(ClipData.newPlainText("ClipboardPro Sync", text))
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to set clipboard: ${e.localizedMessage}")
+                            }
                         }
                     }
 
-                    // Add received text directly to Room Database — do NOT go through clipboard listener to avoid duplication
+                    // Save directly to Room — the TextExpanderService clipboard listener will
+                    // ignore this since the label is "ClipboardPro Sync"
                     addClipboardItem(
                         text = text,
                         category = "Received",
