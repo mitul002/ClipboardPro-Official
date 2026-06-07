@@ -176,6 +176,13 @@ class MainActivity : ComponentActivity() {
         checkClipboardAndSave()
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            checkClipboardAndSave()
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
