@@ -122,8 +122,17 @@ fun MainScreen(
                                 service?.sendText(text, peer)
                             }
                         )
-                        1 -> TransfersTab(transfers = transfers)
-                        2 -> ReceivedTextsTab(receivedTexts = receivedTexts, peers = peers)
+                        1 -> TransfersTab(
+                            transfers = transfers,
+                            onDeleteTransfer = { service?.removeTransfer(it) },
+                            onClearAllTransfers = { service?.clearTransfers() }
+                        )
+                        2 -> ReceivedTextsTab(
+                            receivedTexts = receivedTexts,
+                            peers = peers,
+                            onDeleteText = { service?.removeReceivedText(it) },
+                            onClearAllTexts = { service?.clearReceivedTexts() }
+                        )
                     }
                 }
             }
@@ -437,7 +446,12 @@ fun SendPanel(
 }
 
 @Composable
-fun ReceivedTextsTab(receivedTexts: List<Pair<String, String>>, peers: List<PeerDevice>) {
+fun ReceivedTextsTab(
+    receivedTexts: List<Pair<String, String>>,
+    peers: List<PeerDevice>,
+    onDeleteText: (Pair<String, String>) -> Unit,
+    onClearAllTexts: () -> Unit
+) {
     val context = LocalContext.current
     if (receivedTexts.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -456,13 +470,26 @@ fun ReceivedTextsTab(receivedTexts: List<Pair<String, String>>, peers: List<Peer
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
-            Text(
-                "RECEIVED TEXTS", color = TextMuted, fontSize = 10.sp,
-                fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-                modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp, start = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "RECEIVED TEXTS", color = TextMuted, fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp
+                )
+                Text(
+                    "Clear All",
+                    color = Teal400,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { onClearAllTexts() }
+                )
+            }
         }
-        items(receivedTexts.reversed()) { (text, from) ->
+        items(receivedTexts.reversed()) { item ->
+            val (text, from) = item
             val displayName = peers.find { it.ip == from }?.name ?: from
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -484,6 +511,18 @@ fun ReceivedTextsTab(receivedTexts: List<Pair<String, String>>, peers: List<Peer
                             modifier = Modifier.size(28.dp)
                         ) {
                             Icon(Icons.Rounded.ContentCopy, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        IconButton(
+                            onClick = { onDeleteText(item) },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.Delete,
+                                contentDescription = "Delete",
+                                tint = DangerRed.copy(alpha = 0.8f),
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
                     Spacer(Modifier.height(8.dp))
@@ -548,7 +587,11 @@ fun ScanningAnimation() {
 }
 
 @Composable
-fun TransfersTab(transfers: List<TransferItem>) {
+fun TransfersTab(
+    transfers: List<TransferItem>,
+    onDeleteTransfer: (String) -> Unit,
+    onClearAllTransfers: () -> Unit
+) {
     if (transfers.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -564,18 +607,35 @@ fun TransfersTab(transfers: List<TransferItem>) {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
-            Text(
-                "TRANSFER HISTORY", color = TextMuted, fontSize = 10.sp,
-                fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-                modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp, start = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "TRANSFER HISTORY", color = TextMuted, fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp
+                )
+                Text(
+                    "Clear All",
+                    color = Teal400,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { onClearAllTransfers() }
+                )
+            }
+        }
+        items(transfers, key = { it.id }) { t ->
+            TransferCard(
+                transfer = t,
+                onDelete = { onDeleteTransfer(t.id) }
             )
         }
-        items(transfers, key = { it.id }) { t -> TransferCard(t) }
     }
 }
 
 @Composable
-fun TransferCard(transfer: TransferItem) {
+fun TransferCard(transfer: TransferItem, onDelete: () -> Unit) {
     val context = LocalContext.current
     val statusColor = when (transfer.status) {
         TransferStatus.COMPLETED -> SuccessGreen
@@ -628,6 +688,18 @@ fun TransferCard(transfer: TransferItem) {
                     transfer.status.name.lowercase().replaceFirstChar { it.uppercase() },
                     color = statusColor, fontSize = 11.sp, fontWeight = FontWeight.Bold
                 )
+                Spacer(Modifier.width(8.dp))
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.Delete,
+                        contentDescription = "Delete",
+                        tint = DangerRed.copy(alpha = 0.8f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
             if (transfer.status == TransferStatus.ACTIVE && transfer.totalBytes > 0) {
                 Spacer(Modifier.height(8.dp))

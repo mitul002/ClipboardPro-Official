@@ -145,6 +145,24 @@ class LocalShareService : Service() {
         transferSender.sendText(text, peer)
     }
 
+    fun removeTransfer(id: String) {
+        _transfers.value = _transfers.value.filter { it.id != id }
+    }
+
+    fun clearTransfers() {
+        _transfers.value = emptyList()
+    }
+
+    fun removeReceivedText(item: Pair<String, String>) {
+        val list = _receivedTexts.value.toMutableList()
+        list.remove(item)
+        _receivedTexts.value = list
+    }
+
+    fun clearReceivedTexts() {
+        _receivedTexts.value = emptyList()
+    }
+
     private fun updateTransfer(item: TransferItem) {
         val resolvedPeerName = _peers.value.find { it.ip == item.peerName }?.name ?: item.peerName
         val resolvedItem = if (resolvedPeerName != item.peerName) {
