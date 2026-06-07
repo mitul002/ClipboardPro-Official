@@ -131,6 +131,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <Grid Grid.Row="0">
@@ -149,7 +150,27 @@
                         </Border>
                     </Grid>
 
-                    <StackPanel Grid.Row="1" Margin="0,20,0,0">
+                    <!-- Text Send Section -->
+                    <Grid Grid.Row="1" Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0">
+                            <TextBox x:Name="TxtSendText" Height="32" 
+                                     Background="{DynamicResource BgSidebar}" Foreground="{DynamicResource TextPrimary}"
+                                     BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                                     Padding="8,6" FontSize="12" VerticalContentAlignment="Center"
+                                     TextChanged="TxtSendText_TextChanged"/>
+                            <TextBlock x:Name="TxtPlaceholder" IsHitTestVisible="False" Text="Type text to send..." 
+                                       VerticalAlignment="Center" HorizontalAlignment="Left" Margin="10,0,0,0"
+                                       Foreground="{DynamicResource TextMuted}" FontSize="12"/>
+                        </Grid>
+                        <Button x:Name="BtnSendText" Grid.Column="1" Margin="8,0,0,0" Width="60" Height="32"
+                                Content="Send" Style="{StaticResource SecondaryButton}" Click="BtnSendText_Click"/>
+                    </Grid>
+
+                    <StackPanel Grid.Row="2" Margin="0,16,0,0">
                         <TextBlock Text="Recent Transfers" Foreground="{DynamicResource TextMuted}" 
                                    FontSize="11" FontWeight="Bold" Margin="0,0,0,10"/>
                         <ScrollViewer MaxHeight="120" Style="{StaticResource SlimScrollViewer}">

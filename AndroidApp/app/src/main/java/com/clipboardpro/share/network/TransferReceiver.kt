@@ -16,7 +16,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 class TransferReceiver(
-    private val saveDirectory: File,
+    private val context: android.content.Context,
     private val onTransferUpdate: (TransferItem) -> Unit,
     private val onTextReceived: (String, String) -> Unit
 ) {
@@ -28,7 +28,6 @@ class TransferReceiver(
 
     fun start(): Int {
         isRunning = true
-        if (!saveDirectory.exists()) saveDirectory.mkdirs()
 
         for (port in 50506..50515) {
             try {
@@ -113,7 +112,6 @@ class TransferReceiver(
 
                     // Security sanitization
                     val safeName = sanitizeFileName(rawName)
-                    val targetFile = File(saveDirectory, safeName)
 
                     val transfer = TransferItem(
                         fileName = safeName,
@@ -124,30 +122,77 @@ class TransferReceiver(
                     )
                     onTransferUpdate(transfer)
 
-                    FileOutputStream(targetFile).use { fos ->
-                        val buffer = ByteArray(81920) // 80KB chunks
-                        var totalRead = 0L
-                        while (totalRead < payloadLen) {
-                            val toRead = minOf(buffer.size.toLong(), payloadLen - totalRead).toInt()
-                            val read = dis.read(buffer, 0, toRead)
-                            if (read == -1) break
-                            fos.write(buffer, 0, read)
-                            totalRead += read
-                            val pct = ((totalRead * 100) / payloadLen).toInt()
-                            onTransferUpdate(transfer.copy(
-                                progress = pct,
-                                bytesTransferred = totalRead,
-                                status = TransferStatus.ACTIVE
-                            ))
+                    var success = false
+                    try {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                            val resolver = context.contentResolver
+                            val contentValues = android.content.ContentValues().apply {
+                                put(android.provider.MediaStore.Downloads.DISPLAY_NAME, safeName)
+                                put(android.provider.MediaStore.Downloads.RELATIVE_PATH, "Download/Received")
+                            }
+                            val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                            if (uri != null) {
+                                resolver.openOutputStream(uri).use { fos ->
+                                    if (fos != null) {
+                                        val buffer = ByteArray(81920)
+                                        var totalRead = 0L
+                                        while (totalRead < payloadLen) {
+                                            val toRead = minOf(buffer.size.toLong(), payloadLen - totalRead).toInt()
+                                            val read = dis.read(buffer, 0, toRead)
+                                            if (read == -1) break
+                                            fos.write(buffer, 0, read)
+                                            totalRead += read
+                                            val pct = ((totalRead * 100) / payloadLen).toInt()
+                                            onTransferUpdate(transfer.copy(
+                                                progress = pct,
+                                                bytesTransferred = totalRead,
+                                                status = TransferStatus.ACTIVE
+                                            ))
+                                        }
+                                        success = true
+                                    }
+                                }
+                            }
+                        } else {
+                            val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+                            val receivedDir = File(downloadsDir, "Received")
+                            if (!receivedDir.exists()) receivedDir.mkdirs()
+                            val targetFile = File(receivedDir, safeName)
+                            java.io.FileOutputStream(targetFile).use { fos ->
+                                val buffer = ByteArray(81920)
+                                var totalRead = 0L
+                                while (totalRead < payloadLen) {
+                                    val toRead = minOf(buffer.size.toLong(), payloadLen - totalRead).toInt()
+                                    val read = dis.read(buffer, 0, toRead)
+                                    if (read == -1) break
+                                    fos.write(buffer, 0, read)
+                                    totalRead += read
+                                    val pct = ((totalRead * 100) / payloadLen).toInt()
+                                    onTransferUpdate(transfer.copy(
+                                        progress = pct,
+                                        bytesTransferred = totalRead,
+                                        status = TransferStatus.ACTIVE
+                                    ))
+                                }
+                                success = true
+                            }
                         }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error writing file: ${e.message}")
                     }
 
-                    onTransferUpdate(transfer.copy(
-                        progress = 100,
-                        bytesTransferred = payloadLen,
-                        status = TransferStatus.COMPLETED
-                    ))
-                    Log.i(TAG, "File received: $safeName (${targetFile.length()} bytes)")
+                    if (success) {
+                        onTransferUpdate(transfer.copy(
+                            progress = 100,
+                            bytesTransferred = payloadLen,
+                            status = TransferStatus.COMPLETED
+                        ))
+                        Log.i(TAG, "File received: $safeName")
+                    } else {
+                        onTransferUpdate(transfer.copy(
+                            status = TransferStatus.FAILED
+                        ))
+                    }
                 }
                 Unit
             } catch (e: Exception) {

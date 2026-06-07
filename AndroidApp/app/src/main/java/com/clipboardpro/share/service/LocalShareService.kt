@@ -79,12 +79,9 @@ class LocalShareService : Service() {
         val instanceId = generateInstanceId()
         val deviceName = android.os.Build.MODEL
 
-        val baseDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: filesDir
-        val saveDir = File(baseDir, "ClipboardPro")
-
         // Start TCP receiver first to get port
         transferReceiver = TransferReceiver(
-            saveDirectory = saveDir,
+            context = this,
             onTransferUpdate = { item -> updateTransfer(item) },
             onTextReceived = { text, from ->
                 // Copy to Android clipboard automatically

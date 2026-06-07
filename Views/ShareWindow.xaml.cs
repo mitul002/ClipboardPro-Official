@@ -207,6 +207,72 @@ namespace ClipboardPro.Views
                 }
             }));
         }
+
+        private void TxtSendText_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (TxtPlaceholder != null)
+            {
+                TxtPlaceholder.Visibility = string.IsNullOrEmpty(TxtSendText.Text) ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        private async void BtnSendText_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedPeer == null) return;
+            string text = TxtSendText.Text;
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            TxtSendText.Text = string.Empty;
+            var peer = _selectedPeer;
+
+            var transfer = new TransferModel
+            {
+                FileName = text.Length > 25 ? text.Substring(0, 22) + "..." : text,
+                Progress = 0,
+                Status = "Sending...",
+                IsActive = true
+            };
+            _transfers.Insert(0, transfer);
+
+            try
+            {
+                var item = new ClipboardItem
+                {
+                    Type = ClipboardItemType.Text,
+                    Content = text,
+                    Timestamp = DateTime.Now
+                };
+
+                item.PropertyChanged += (s, ev) =>
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (ev.PropertyName == nameof(ClipboardItem.SendingPercentage))
+                            transfer.Progress = (int)item.SendingPercentage;
+                        if (ev.PropertyName == nameof(ClipboardItem.BytesSent))
+                            transfer.BytesTransferred = item.BytesSent;
+                        if (ev.PropertyName == nameof(ClipboardItem.TotalBytes))
+                            transfer.TotalBytes = item.TotalBytes;
+                    }));
+                };
+
+                bool success = await _vm.SendToDevice(item, peer, transfer.Cts.Token, transfer.PauseEvent);
+                transfer.Status = success ? "Completed" : "Failed";
+                if (success) transfer.Progress = 100;
+            }
+            catch (OperationCanceledException)
+            {
+                transfer.Status = "Cancelled";
+            }
+            catch
+            {
+                transfer.Status = "Error";
+            }
+            finally
+            {
+                transfer.IsActive = false;
+            }
+        }
     }
 
     public class TransferModel : System.ComponentModel.INotifyPropertyChanged
