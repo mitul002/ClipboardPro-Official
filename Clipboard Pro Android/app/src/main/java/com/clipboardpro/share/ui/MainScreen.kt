@@ -1035,6 +1035,9 @@ fun AddSnippetDialog(
     var trigger by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
     var desc by remember { mutableStateOf("") }
+    var triggerError by remember { mutableStateOf<String?>(null) }
+
+    val delimiterHint = "; . / ! @ # : , ? * - _ + = ~"
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1042,18 +1045,39 @@ fun AddSnippetDialog(
         containerColor = CardBg,
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Hint box
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Teal400.copy(0.08f))
+                        .padding(10.dp)
+                ) {
+                    Text(
+                        text = "Trigger must start or end with a special symbol.\nAllowed: $delimiterHint\nExamples: :ph  em;  /addr  hello#",
+                        color = TextMuted,
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp
+                    )
+                }
                 OutlinedTextField(
                     value = trigger,
-                    onValueChange = { trigger = it },
-                    label = { Text("Abbreviation (Trigger)") },
-                    placeholder = { Text("e.g. :ph") },
+                    onValueChange = {
+                        trigger = it
+                        triggerError = null
+                    },
+                    label = { Text("Shortcut (Trigger)") },
+                    placeholder = { Text("e.g. :ph  or  em;") },
+                    isError = triggerError != null,
+                    supportingText = triggerError?.let { { Text(it, color = DangerRed, fontSize = 11.sp) } },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = TextPrimary,
                         unfocusedTextColor = TextPrimary,
-                        focusedBorderColor = Teal400,
-                        unfocusedBorderColor = BorderColor
+                        focusedBorderColor = if (triggerError != null) DangerRed else Teal400,
+                        unfocusedBorderColor = if (triggerError != null) DangerRed else BorderColor
                     ),
-                    singleLine = true
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = content,
@@ -1065,7 +1089,8 @@ fun AddSnippetDialog(
                         unfocusedTextColor = TextPrimary,
                         focusedBorderColor = Teal400,
                         unfocusedBorderColor = BorderColor
-                    )
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = desc,
@@ -1077,14 +1102,24 @@ fun AddSnippetDialog(
                         focusedBorderColor = Teal400,
                         unfocusedBorderColor = BorderColor
                     ),
-                    singleLine = true
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
             Button(
-                onClick = { onSave(trigger, content, desc) },
-                enabled = trigger.isNotBlank() && content.isNotBlank(),
+                onClick = {
+                    val t = trigger.trim()
+                    when {
+                        t.isBlank() -> triggerError = "Please enter a trigger."
+                        !com.clipboardpro.share.service.TextExpanderService.hasValidDelimiter(t) ->
+                            triggerError = "Must start or end with a symbol: $delimiterHint"
+                        content.isBlank() -> { /* handled by disabled state */ }
+                        else -> onSave(t, content, desc)
+                    }
+                },
+                enabled = content.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = Teal400)
             ) {
                 Text("Save", color = Color.White, fontWeight = FontWeight.Bold)
@@ -1126,6 +1161,9 @@ fun EditSnippetDialog(
     var trigger by remember { mutableStateOf(snippet.trigger) }
     var content by remember { mutableStateOf(snippet.content) }
     var desc by remember { mutableStateOf(snippet.description ?: "") }
+    var triggerError by remember { mutableStateOf<String?>(null) }
+
+    val delimiterHint = "; . / ! @ # : , ? * - _ + = ~"
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1135,11 +1173,17 @@ fun EditSnippetDialog(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = trigger,
-                    onValueChange = { trigger = it },
-                    label = { Text("Trigger Abbreviation") },
+                    onValueChange = {
+                        trigger = it
+                        triggerError = null
+                    },
+                    label = { Text("Shortcut (Trigger)") },
+                    isError = triggerError != null,
+                    supportingText = triggerError?.let { { Text(it, color = DangerRed, fontSize = 11.sp) } },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
-                        focusedBorderColor = Teal400, unfocusedBorderColor = BorderColor
+                        focusedBorderColor = if (triggerError != null) DangerRed else Teal400,
+                        unfocusedBorderColor = if (triggerError != null) DangerRed else BorderColor
                     ),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -1169,8 +1213,17 @@ fun EditSnippetDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onSave(trigger, content, desc) },
-                enabled = trigger.isNotBlank() && content.isNotBlank(),
+                onClick = {
+                    val t = trigger.trim()
+                    when {
+                        t.isBlank() -> triggerError = "Please enter a trigger."
+                        !com.clipboardpro.share.service.TextExpanderService.hasValidDelimiter(t) ->
+                            triggerError = "Must start or end with a symbol: $delimiterHint"
+                        content.isBlank() -> { /* handled by disabled state */ }
+                        else -> onSave(t, content, desc)
+                    }
+                },
+                enabled = content.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(containerColor = Teal400)
             ) { Text("Save", color = Color.White, fontWeight = FontWeight.Bold) }
         },

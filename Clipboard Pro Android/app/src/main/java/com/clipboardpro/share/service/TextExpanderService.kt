@@ -17,6 +17,39 @@ class TextExpanderService : AccessibilityService() {
 
     companion object {
         private const val TAG = "TextExpanderService"
+
+        /**
+         * Allowed delimiter symbols — exactly matches the Windows client's HasValidDelimiter logic.
+         * A trigger MUST start or end with one of these characters.
+         */
+        val ALLOWED_DELIMITERS = setOf(
+            ';', '.', '/', '!', '@', '#', ':', ',', '?', '*', '-', '_', '+', '=', '~'
+        )
+
+        /**
+         * Returns true when the trigger starts or ends with a permitted delimiter symbol.
+         * Mirrors Windows: HasValidDelimiter()
+         */
+        fun hasValidDelimiter(trigger: String): Boolean {
+            if (trigger.isEmpty()) return false
+            return trigger.first() in ALLOWED_DELIMITERS || trigger.last() in ALLOWED_DELIMITERS
+        }
+
+        /**
+         * Strips leading and trailing delimiter symbols from the trigger, returning only
+         * the alphanumeric "core". Mirrors Windows: GetCleanTrigger()
+         * Example: ":ad" → "ad", "em;" → "em", "#hello#" → "hello"
+         */
+        fun getCleanTrigger(trigger: String): String {
+            if (trigger.isEmpty()) return ""
+            var start = 0
+            while (start < trigger.length && !trigger[start].isLetterOrDigit()) start++
+            var end = trigger.length - 1
+            while (end >= start && !trigger[end].isLetterOrDigit()) end--
+            // If all chars are non-alphanumeric (e.g. pure symbol trigger), return as-is
+            if (start > end) return trigger
+            return trigger.substring(start, end + 1)
+        }
     }
 
     private val job = SupervisorJob()
@@ -25,35 +58,31 @@ class TextExpanderService : AccessibilityService() {
     private var snippetsList = listOf<SnippetItemEntity>()
 
     // Expansion undo state
-    // The full expanded text (e.g., "Hello mirpur")
-    private var lastExpandedText = ""
-    // The original trigger that was typed (e.g., ":ad")
-    private var lastTrigger = ""
-    // The full text BEFORE expansion happened (e.g., "Hello :ad")
-    private var preExpansionText = ""
+    private var lastExpandedText = ""  // Full text AFTER expansion (e.g., "Hello mirpur")
+    private var lastTrigger = ""       // The original trigger string (e.g., ":ad")
+    private var preExpansionText = ""  // Full field text BEFORE expansion (e.g., "Hello :ad")
 
     private var isExpanding = false
 
     override fun onCreate() {
         super.onCreate()
 
-        // Listen to database snippets dynamically
         val db = AppDatabase.getDatabase(this)
         scope.launch {
             db.snippetDao().getAllSnippetsFlow().collectLatest { list ->
-                snippetsList = list
-                Log.d(TAG, "Loaded ${list.size} snippets for expansion.")
+                // Only load snippets that have a valid delimiter — skip any legacy ones without
+                snippetsList = list.filter { hasValidDelimiter(it.trigger) }
+                Log.d(TAG, "Loaded ${snippetsList.size} valid snippets for expansion.")
             }
         }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         if (event.eventType != AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED) return
-        if (isExpanding) return // Prevent recursive events during substitution
+        if (isExpanding) return
 
         val sourceNode = event.source ?: return
 
-        // Ensure it is an editable field
         if (!sourceNode.isEditable && !sourceNode.className.toString().contains("Edit", ignoreCase = true)) {
             sourceNode.recycle()
             return
@@ -61,14 +90,21 @@ class TextExpanderService : AccessibilityService() {
 
         val text = sourceNode.text?.toString() ?: ""
 
-        // ── Undo / Backspace detection ──────────────────────────────────────────
-        // If an expansion is armed and the user pressed backspace, the current text
-        // will equal the expanded text minus its last character. We revert to the
-        // pre-expansion text (which contains the original trigger).
+        // ── Undo / Backspace detection ────────────────────────────────────────
+        // When expansion is armed and the user presses backspace once, the current text
+        // becomes lastExpandedText minus its last character.
+        // On undo: restore the clean trigger (strip delimiter prefix/suffix), matching Windows behaviour.
         if (lastExpandedText.isNotEmpty() && text == lastExpandedText.dropLast(1)) {
             isExpanding = true
 
-            val restoredText = preExpansionText  // Restore exactly what was there before expansion
+            // Windows: GetCleanTrigger strips the delimiter, so ":ad" → "ad", "em;" → "em"
+            val cleanTrigger = getCleanTrigger(lastTrigger)
+
+            // Rebuild restored text: everything before the expansion + clean trigger
+            val prefixLen = preExpansionText.length - lastTrigger.length
+            val prefix = if (prefixLen >= 0) preExpansionText.substring(0, prefixLen) else ""
+            val restoredText = prefix + cleanTrigger
+
             val arguments = Bundle().apply {
                 putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, restoredText)
             }
@@ -89,7 +125,7 @@ class TextExpanderService : AccessibilityService() {
             return
         }
 
-        // If we had an armed undo but the user typed something else, clear the undo state
+        // If user typed something else after expansion, cancel the undo window
         if (lastExpandedText.isNotEmpty() && text != lastExpandedText) {
             lastExpandedText = ""
             lastTrigger = ""
@@ -115,17 +151,16 @@ class TextExpanderService : AccessibilityService() {
                 }
                 sourceNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)
 
-                // Place cursor at the end
                 val selectionArgs = Bundle().apply {
                     putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, newText.length)
                     putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, newText.length)
                 }
                 sourceNode.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selectionArgs)
 
-                // Arm undo state — store what things looked like BEFORE and AFTER expansion
-                preExpansionText = text          // e.g., "Hello :ad"
-                lastTrigger = trigger            // e.g., ":ad"
-                lastExpandedText = newText       // e.g., "Hello mirpur"
+                // Arm undo state
+                preExpansionText = text       // e.g., "Hello :ad"
+                lastTrigger = trigger         // e.g., ":ad"
+                lastExpandedText = newText    // e.g., "Hello mirpur"
 
                 isExpanding = false
                 break
