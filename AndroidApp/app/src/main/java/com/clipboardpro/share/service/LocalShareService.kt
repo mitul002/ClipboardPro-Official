@@ -145,12 +145,19 @@ class LocalShareService : Service() {
     }
 
     private fun updateTransfer(item: TransferItem) {
-        val current = _transfers.value.toMutableList()
-        val existingIdx = current.indexOfFirst { it.id == item.id }
-        if (existingIdx >= 0) {
-            current[existingIdx] = item
+        val resolvedPeerName = _peers.value.find { it.ip == item.peerName }?.name ?: item.peerName
+        val resolvedItem = if (resolvedPeerName != item.peerName) {
+            item.copy(peerName = resolvedPeerName)
         } else {
-            current.add(0, item)
+            item
+        }
+
+        val current = _transfers.value.toMutableList()
+        val existingIdx = current.indexOfFirst { it.id == resolvedItem.id }
+        if (existingIdx >= 0) {
+            current[existingIdx] = resolvedItem
+        } else {
+            current.add(0, resolvedItem)
         }
         _transfers.value = current
     }
