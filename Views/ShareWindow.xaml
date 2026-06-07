@@ -159,12 +159,14 @@
                         <TextBox x:Name="TxtSendText" Grid.Column="0" Height="36"
                                  Style="{StaticResource InputBox}"
                                  Tag="Type text to send to device..."
-                                 TextChanged="TxtSendText_TextChanged"/>
+                                 TextChanged="TxtSendText_TextChanged"
+                                 VerticalAlignment="Center"/>
                         <Button x:Name="BtnSendText" Grid.Column="1" Margin="8,0,0,0"
                                 Width="64" Height="36"
                                 Content="Send" Style="{StaticResource PrimaryButton}"
                                 FontSize="12" Padding="0,0"
-                                Click="BtnSendText_Click"/>
+                                Click="BtnSendText_Click"
+                                VerticalAlignment="Center"/>
                     </Grid>
 
                     <StackPanel Grid.Row="2" Margin="0,16,0,0">
