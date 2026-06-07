@@ -88,7 +88,12 @@ class TransferReceiver(
                 val item = gson.fromJson(jsonStr, ClipboardItemPayload::class.java) ?: return
 
                 // 3. Handle TEXT items
-                if (item.Type == ClipboardItemType.TEXT.value || item.Type == ClipboardItemType.URL.value) {
+                if (item.Type == ClipboardItemType.TEXT.value ||
+                    item.Type == ClipboardItemType.URL.value ||
+                    item.Type == ClipboardItemType.EMAIL.value ||
+                    item.Type == ClipboardItemType.PHONE.value ||
+                    item.Type == ClipboardItemType.CODE.value ||
+                    item.Type == ClipboardItemType.COLOR.value) {
                     Log.i(TAG, "Text received from $peerIp: ${item.Content.take(100)}")
                     onTextReceived(item.Content, peerIp)
                     return
