@@ -1,0 +1,5 @@
+AppDomain: System.DllNotFoundException: Arg_DllNotFoundException
+   at __std_type_info_destroy_list(__type_info_node*)
+   at __scrt_uninitialize_type_info()
+   at _app_exit_callback()
+   at <CrtImplementationDetails>.ModuleUninitializer.SingletonDomainUnload(Object source, EventArgs arguments)
