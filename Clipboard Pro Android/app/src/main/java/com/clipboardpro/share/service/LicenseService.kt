@@ -125,7 +125,8 @@ class LicenseService(private val context: Context) {
                 return null
             }
 
-            if (payload.expires != null && System.currentTimeMillis() > payload.expires) {
+            val expiresVal = payload.expires
+            if (expiresVal != null && System.currentTimeMillis() > expiresVal) {
                 Log.w(TAG, "License expired")
                 return null
             }

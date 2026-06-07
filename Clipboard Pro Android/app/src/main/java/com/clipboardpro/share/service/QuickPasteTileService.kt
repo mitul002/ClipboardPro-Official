@@ -51,7 +51,7 @@ class QuickPasteTileService : TileService() {
         // Fluent Dark background container
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            padding = 16
+            setPadding(16, 16, 16, 16)
             background = GradientDrawable().apply {
                 setColor(Color.parseColor("#0F172A")) // DarkBg
                 cornerRadius = 24f

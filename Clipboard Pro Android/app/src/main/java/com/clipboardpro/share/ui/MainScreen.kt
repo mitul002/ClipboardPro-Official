@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -446,8 +447,8 @@ fun VaultTab(
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Teal400.copy(0.15f),
                         selectedLabelColor = Teal400,
-                        unselectedContainerColor = CardBg,
-                        unselectedLabelColor = TextMuted
+                        containerColor = CardBg,
+                        labelColor = TextMuted
                     ),
                     border = BorderStroke(1.dp, if (selectedFilterIndex == index) Teal400 else BorderColor)
                 )
@@ -639,7 +640,7 @@ fun VaultCard(
                             if (bitmap != null) {
                                 Column(modifier = Modifier.fillMaxWidth().height(160.dp)) {
                                     androidx.compose.foundation.Image(
-                                        bitmap = androidx.compose.ui.graphics.asImageBitmap(bitmap),
+                                        bitmap = bitmap.asImageBitmap(),
                                         contentDescription = "Clipboard Image",
                                         modifier = Modifier
                                             .fillMaxWidth()

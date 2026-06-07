@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +62,14 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val licenseService = remember { LicenseService(context) }
+    val trialService = remember { TrialService(context) }
+    var licenseStatus by remember { mutableStateOf(licenseService.getLicenseStatus()) }
+    var showLicenseDialog by remember { mutableStateOf(false) }
+    var maxHistory by remember { mutableStateOf(getPrefs(context).getInt("max_history_items", 200)) }
+    var showMaxHistoryDialog by remember { mutableStateOf(false) }
+
     var saveFolder by remember { mutableStateOf(getSaveFolder(context)) }
     var autoClipboard by remember { mutableStateOf(getAutoClipboard(context)) }
     var showFolderDialog by remember { mutableStateOf(false) }
@@ -168,10 +177,7 @@ fun SettingsScreen(
 
             SettingSectionLabel("LICENSE & TRIAL")
 
-            val licenseService = remember { LicenseService(context) }
-            val trialService = remember { TrialService(context) }
-            var licenseStatus by remember { mutableStateOf(licenseService.getLicenseStatus()) }
-            var showLicenseDialog by remember { mutableStateOf(false) }
+
 
             val statusText = when {
                 licenseStatus.isLicensed -> "Pro Version Active (${licenseStatus.keyPreview})"
@@ -188,21 +194,12 @@ fun SettingsScreen(
 
             SettingSectionLabel("DATABASE & MAINTENANCE")
 
-            var maxHistory by remember {
-                mutableStateOf(
-                    getPrefs(context).getInt("max_history_items", 200)
-                )
-            }
-            var showMaxHistoryDialog by remember { mutableStateOf(false) }
-
             SettingCard(
                 icon = Icons.Rounded.History,
                 title = "Max Clipboard Items",
                 subtitle = "$maxHistory items limit",
                 onClick = { showMaxHistoryDialog = true }
             )
-
-            val scope = rememberCoroutineScope()
             SettingCard(
                 icon = Icons.Rounded.CleaningServices,
                 title = "Compact Database (Vacuum)",
