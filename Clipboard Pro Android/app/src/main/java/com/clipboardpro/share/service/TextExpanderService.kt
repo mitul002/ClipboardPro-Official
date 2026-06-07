@@ -46,10 +46,8 @@ class TextExpanderService : AccessibilityService() {
 
         val sourceNode = event.source ?: return
         
-        // Ensure it is a text entry field
-        if (sourceNode.className != "android.widget.EditText" && 
-            sourceNode.className != "android.widget.MultiAutoCompleteTextView"
-        ) {
+        // Ensure it is an editable field
+        if (!sourceNode.isEditable && !sourceNode.className.toString().contains("Edit", ignoreCase = true)) {
             sourceNode.recycle()
             return
         }

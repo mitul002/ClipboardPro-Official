@@ -193,6 +193,27 @@ fun MainScreen(
                             peers = peers,
                             onSendFileSelected = { file, peer ->
                                 service?.sendFile(file, peer)
+                            },
+                            onSendText = { text, peer ->
+                                service?.sendText(text, peer)
+                            },
+                            onSendClipboard = { peer ->
+                                try {
+                                    val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    if (cb.hasPrimaryClip()) {
+                                        val text = cb.primaryClip?.getItemAt(0)?.text?.toString()
+                                        if (!text.isNullOrBlank()) {
+                                            service?.sendText(text, peer)
+                                            Toast.makeText(context, "Sending clipboard to ${peer.name}...", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "Clipboard is empty", Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Cannot access clipboard", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         )
                         3 -> TransfersTab(
@@ -1140,10 +1161,13 @@ fun EditSnippetDialog(
 @Composable
 fun DevicesTab(
     peers: List<PeerDevice>,
-    onSendFileSelected: (File, PeerDevice) -> Unit
+    onSendFileSelected: (File, PeerDevice) -> Unit,
+    onSendText: (String, PeerDevice) -> Unit,
+    onSendClipboard: (PeerDevice) -> Unit
 ) {
     val context = LocalContext.current
     var selectedPeer by remember { mutableStateOf<PeerDevice?>(null) }
+    var textInput by remember { mutableStateOf("") }
     
     val filePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
@@ -1187,21 +1211,104 @@ fun DevicesTab(
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut()
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 10.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                val peer = selectedPeer
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceBg),
+                    border = BorderStroke(1.dp, Teal400.copy(alpha = 0.25f))
                 ) {
-                    Button(
-                        onClick = { filePicker.launch("*/*") },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Teal400)
-                    ) {
-                        Icon(Icons.Rounded.UploadFile, null, modifier = Modifier.size(16.dp), tint = DarkBg)
-                        Spacer(Modifier.width(6.dp))
-                        Text("Send File", color = DarkBg, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                Modifier.size(6.dp).clip(CircleShape).background(SuccessGreen)
+                            )
+                            Spacer(Modifier.width(7.dp))
+                            Text(
+                                "SEND TO ${peer?.name?.uppercase() ?: ""}",
+                                color = Teal400, fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp
+                            )
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        // Text input row
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = textInput,
+                                onValueChange = { textInput = it },
+                                placeholder = { Text("Type a message...", color = TextMuted, fontSize = 13.sp) },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                                keyboardActions = KeyboardActions(onSend = {
+                                    if (textInput.isNotBlank() && peer != null) {
+                                        onSendText(textInput, peer)
+                                        textInput = ""
+                                    }
+                                }),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = TextPrimary,
+                                    unfocusedTextColor = TextPrimary,
+                                    focusedBorderColor = Teal400,
+                                    unfocusedBorderColor = BorderColor,
+                                    cursorColor = Teal400
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            Button(
+                                onClick = {
+                                    if (textInput.isNotBlank() && peer != null) {
+                                        onSendText(textInput, peer)
+                                        textInput = ""
+                                    }
+                                },
+                                enabled = textInput.isNotBlank(),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Teal400,
+                                    disabledContainerColor = ElevatedBg
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Send, null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = if (textInput.isNotBlank()) DarkBg else TextMuted
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+                        HorizontalDivider(color = BorderColor, thickness = 1.dp)
+                        Spacer(Modifier.height(12.dp))
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Button(
+                                onClick = { filePicker.launch("*/*") },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Teal400)
+                            ) {
+                                Icon(Icons.Rounded.UploadFile, null, modifier = Modifier.size(18.dp), tint = DarkBg)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Send File", fontWeight = FontWeight.SemiBold, color = DarkBg, fontSize = 13.sp)
+                            }
+                            OutlinedButton(
+                                onClick = { peer?.let { onSendClipboard(it) } },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Teal400)
+                            ) {
+                                Icon(Icons.Rounded.ContentPaste, null, modifier = Modifier.size(18.dp), tint = Teal400)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Clipboard", fontWeight = FontWeight.SemiBold, color = Teal400, fontSize = 13.sp)
+                            }
+                        }
                     }
                 }
             }
@@ -1431,6 +1538,8 @@ fun TransfersTab(
 @Composable
 fun TransferCard(transfer: TransferItem, onDelete: () -> Unit) {
     val context = LocalContext.current
+    var showOptionsDialog by remember { mutableStateOf(false) }
+
     val statusColor = when (transfer.status) {
         TransferStatus.COMPLETED -> SuccessGreen
         TransferStatus.FAILED, TransferStatus.CANCELLED -> DangerRed
@@ -1440,16 +1549,13 @@ fun TransferCard(transfer: TransferItem, onDelete: () -> Unit) {
     val dirIcon = if (transfer.direction == TransferDirection.SEND)
         Icons.Rounded.Upload else Icons.Rounded.Download
 
-    val isClickable = transfer.status == TransferStatus.COMPLETED && transfer.fileUri != null
-    val cardModifier = if (isClickable) {
-        Modifier
-            .fillMaxWidth()
-            .clickable {
-                transfer.fileUri?.let { openReceivedFile(context, it) }
+    val cardModifier = Modifier
+        .fillMaxWidth()
+        .clickable {
+            if (transfer.status == TransferStatus.COMPLETED) {
+                showOptionsDialog = true
             }
-    } else {
-        Modifier.fillMaxWidth()
-    }
+        }
 
     Card(
         modifier = cardModifier,
@@ -1506,6 +1612,99 @@ fun TransferCard(transfer: TransferItem, onDelete: () -> Unit) {
                 Text(transfer.sizeDisplay, color = TextMuted, fontSize = 10.sp)
             }
         }
+    }
+
+    if (showOptionsDialog) {
+        AlertDialog(
+            onDismissRequest = { showOptionsDialog = false },
+            containerColor = CardBg,
+            title = {
+                Text(
+                    text = "Transfer Options",
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "File: ${transfer.fileName}",
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    if (transfer.fileUri != null) {
+                        Text(
+                            text = "Path: ${transfer.fileUri}",
+                            color = TextMuted,
+                            fontSize = 11.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (transfer.fileUri != null) {
+                        Button(
+                            onClick = {
+                                showOptionsDialog = false
+                                transfer.fileUri.let { openReceivedFile(context, it) }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Teal400),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Rounded.Launch, null, tint = DarkBg, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Open File", color = DarkBg, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                        
+                        OutlinedButton(
+                            onClick = {
+                                showOptionsDialog = false
+                                val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                cb.setPrimaryClip(ClipData.newPlainText("File Path", transfer.fileUri))
+                                Toast.makeText(context, "File path copied to clipboard", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            border = BorderStroke(1.dp, Teal400),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Rounded.ContentCopy, null, tint = Teal400, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Copy Path", color = Teal400, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                        }
+                    }
+                    
+                    Button(
+                        onClick = {
+                            showOptionsDialog = false
+                            onDelete()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = DangerRed),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Rounded.Delete, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Delete from History", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                    
+                    TextButton(
+                        onClick = { showOptionsDialog = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Cancel", color = TextMuted, fontSize = 12.sp)
+                    }
+                }
+            }
+        )
     }
 }
 

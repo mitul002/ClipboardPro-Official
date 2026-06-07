@@ -144,7 +144,7 @@ class LocalShareService : Service() {
     }
 
     private fun handleClipboardChange(clipboardManager: ClipboardManager) {
-        scope.launch(Dispatchers.IO) {
+        scope.launch {
             var clip: ClipData? = null
             for (i in 0 until 10) {
                 try {
@@ -261,24 +261,30 @@ class LocalShareService : Service() {
             context = this,
             onTransferUpdate = { item -> updateTransfer(item) },
             onTextReceived = { text, from ->
-                val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
-                val autoClip = prefs.getBoolean("auto_clipboard", true)
-                if (autoClip) {
-                    val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    clipboardManager.setPrimaryClip(ClipData.newPlainText("ClipboardPro Sync", text))
+                scope.launch {
+                    val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
+                    val autoClip = prefs.getBoolean("auto_clipboard", true)
+                    if (autoClip) {
+                        try {
+                            val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboardManager.setPrimaryClip(ClipData.newPlainText("ClipboardPro Sync", text))
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to set clipboard: ${e.localizedMessage}")
+                        }
+                    }
+                    
+                    val resolvedName = _peers.value.find { it.ip == from }?.name ?: from
+                    
+                    // Add received text directly to Room Database as a Clipboard item
+                    addClipboardItem(
+                        text = text,
+                        category = "Received",
+                        title = "Received from $resolvedName"
+                    )
+                    
+                    updateNotification("Text received from $resolvedName")
+                    Log.i(TAG, "Text from $resolvedName: ${text.take(50)}")
                 }
-                
-                val resolvedName = _peers.value.find { it.ip == from }?.name ?: from
-                
-                // Add received text directly to Room Database as a Clipboard item
-                addClipboardItem(
-                    text = text,
-                    category = "Received",
-                    title = "Received from $resolvedName"
-                )
-                
-                updateNotification("Text received from $resolvedName")
-                Log.i(TAG, "Text from $resolvedName: ${text.take(50)}")
             }
         )
         tcpPort = transferReceiver!!.start()
