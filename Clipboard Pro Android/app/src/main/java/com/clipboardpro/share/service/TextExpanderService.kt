@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import com.clipboardpro.share.data.AppDatabase
 import com.clipboardpro.share.data.ClipboardItemEntity
 import com.clipboardpro.share.data.SnippetItemEntity
@@ -278,12 +279,8 @@ class TextExpanderService : AccessibilityService() {
                 return
             }
             // Fallback: select-all then paste
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                node.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SELECT_ALL.id)
-            } else {
-                // Pre-Lollipop fallback using standard action integer ID (200)
-                node.performAction(200)
-            }
+            val compatNode = AccessibilityNodeInfoCompat.wrap(node)
+            compatNode.performAction(AccessibilityNodeInfoCompat.ACTION_SELECT_ALL)
             lastSelfSetLabel = "ClipExpand"
             val prevClip = try { clipboardManager.primaryClip } catch (e: Exception) { null }
             clipboardManager.setPrimaryClip(ClipData.newPlainText("ClipExpand", text))
