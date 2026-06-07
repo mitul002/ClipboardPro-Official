@@ -88,6 +88,24 @@ class MainActivity : ComponentActivity() {
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
 
+    override fun onResume() {
+        super.onResume()
+        try {
+            val cb = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            if (cb.hasPrimaryClip()) {
+                val clip = cb.primaryClip
+                if (clip != null && clip.itemCount > 0) {
+                    val text = clip.getItemAt(0).text?.toString()
+                    if (!text.isNullOrBlank()) {
+                        shareService?.addClipboardItem(text)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Ignore security exception if clipboard access is denied
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         if (isServiceBound) {

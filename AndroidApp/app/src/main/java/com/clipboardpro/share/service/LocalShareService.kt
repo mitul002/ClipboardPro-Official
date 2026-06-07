@@ -48,6 +48,9 @@ class LocalShareService : Service() {
     private val _receivedTexts = MutableStateFlow<List<Pair<String, String>>>(emptyList())
     val receivedTexts: StateFlow<List<Pair<String, String>>> = _receivedTexts
 
+    private val _clipboardHistory = MutableStateFlow<List<String>>(emptyList())
+    val clipboardHistory: StateFlow<List<String>> = _clipboardHistory
+
     private var multicastLock: WifiManager.MulticastLock? = null
     private var discoveryManager: DiscoveryManager? = null
     private var transferReceiver: TransferReceiver? = null
@@ -56,10 +59,73 @@ class LocalShareService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = binder
 
+    private fun loadClipboardHistory(): List<String> {
+        val prefs = getSharedPreferences("clipboard_history_prefs", Context.MODE_PRIVATE)
+        val raw = prefs.getString("history", "") ?: ""
+        if (raw.isBlank()) return emptyList()
+        return try {
+            val array = org.json.JSONArray(raw)
+            val list = mutableListOf<String>()
+            for (i in 0 until array.length()) {
+                list.add(array.getString(i))
+            }
+            list
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun saveClipboardHistory(list: List<String>) {
+        val prefs = getSharedPreferences("clipboard_history_prefs", Context.MODE_PRIVATE)
+        val array = org.json.JSONArray()
+        list.forEach { array.put(it) }
+        prefs.edit().putString("history", array.toString()).apply()
+    }
+
+    fun addClipboardItem(text: String) {
+        val clean = text.trim()
+        if (clean.isBlank()) return
+        val current = _clipboardHistory.value.toMutableList()
+        current.remove(clean)
+        current.add(0, clean)
+        if (current.size > 50) current.removeAt(current.size - 1)
+        _clipboardHistory.value = current
+        saveClipboardHistory(current)
+    }
+
+    fun removeClipboardItem(text: String) {
+        val current = _clipboardHistory.value.toMutableList()
+        current.remove(text)
+        _clipboardHistory.value = current
+        saveClipboardHistory(current)
+    }
+
+    fun clearClipboardHistory() {
+        _clipboardHistory.value = emptyList()
+        saveClipboardHistory(emptyList())
+    }
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification("Scanning for nearby devices..."))
+
+        _clipboardHistory.value = loadClipboardHistory()
+
+        val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboardManager.addPrimaryClipChangedListener {
+            try {
+                val clip = clipboardManager.primaryClip
+                if (clip != null && clip.itemCount > 0) {
+                    val text = clip.getItemAt(0).text?.toString()
+                    if (!text.isNullOrBlank()) {
+                        addClipboardItem(text)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error in primary clip listener: ${e.localizedMessage}")
+            }
+        }
 
         acquireMulticastLock()
         initNetworking()

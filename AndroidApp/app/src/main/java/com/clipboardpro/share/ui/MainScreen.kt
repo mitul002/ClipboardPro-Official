@@ -56,6 +56,7 @@ fun MainScreen(
     val peers by (service?.peers ?: emptyFlow<List<PeerDevice>>()).collectAsState(initial = emptyList())
     val transfers by (service?.transfers ?: emptyFlow<List<TransferItem>>()).collectAsState(initial = emptyList())
     val receivedTexts by (service?.receivedTexts ?: emptyFlow<List<Pair<String,String>>>()).collectAsState(initial = emptyList())
+    val clipboardHistory by (service?.clipboardHistory ?: emptyFlow<List<String>>()).collectAsState(initial = emptyList())
 
     var selectedPeer by remember { mutableStateOf<PeerDevice?>(null) }
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -122,16 +123,34 @@ fun MainScreen(
                                 service?.sendText(text, peer)
                             }
                         )
-                        1 -> TransfersTab(
-                            transfers = transfers,
-                            onDeleteTransfer = { service?.removeTransfer(it) },
-                            onClearAllTransfers = { service?.clearTransfers() }
+                        1 -> ClipboardTab(
+                            history = clipboardHistory,
+                            selectedPeer = selectedPeer,
+                            onCopyText = { text ->
+                                val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                cb.setPrimaryClip(ClipData.newPlainText("text", text))
+                                Toast.makeText(context, "Text copied to clipboard", Toast.LENGTH_SHORT).show()
+                            },
+                            onDeleteText = { service?.removeClipboardItem(it) },
+                            onClearAll = { service?.clearClipboardHistory() },
+                            onSendText = { text ->
+                                val peer = selectedPeer
+                                if (peer != null) {
+                                    service?.sendText(text, peer)
+                                    Toast.makeText(context, "Sending text to ${peer.name}...", Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         )
                         2 -> ReceivedTextsTab(
                             receivedTexts = receivedTexts,
                             peers = peers,
                             onDeleteText = { service?.removeReceivedText(it) },
                             onClearAllTexts = { service?.clearReceivedTexts() }
+                        )
+                        3 -> TransfersTab(
+                            transfers = transfers,
+                            onDeleteTransfer = { service?.removeTransfer(it) },
+                            onClearAllTransfers = { service?.clearTransfers() }
                         )
                     }
                 }
@@ -212,6 +231,20 @@ fun AppBottomBar(selectedTab: Int, transferCount: Int, onTabSelected: (Int) -> U
         NavigationBarItem(
             selected = selectedTab == 1,
             onClick = { onTabSelected(1) },
+            icon = { Icon(Icons.Rounded.ContentPaste, null) },
+            label = { Text("Clipboard", fontSize = 11.sp) },
+            colors = navColors()
+        )
+        NavigationBarItem(
+            selected = selectedTab == 2,
+            onClick = { onTabSelected(2) },
+            icon = { Icon(Icons.Rounded.TextFields, null) },
+            label = { Text("Received", fontSize = 11.sp) },
+            colors = navColors()
+        )
+        NavigationBarItem(
+            selected = selectedTab == 3,
+            onClick = { onTabSelected(3) },
             icon = {
                 BadgedBox(badge = {
                     if (transferCount > 0)
@@ -221,13 +254,6 @@ fun AppBottomBar(selectedTab: Int, transferCount: Int, onTabSelected: (Int) -> U
                 }) { Icon(Icons.Rounded.SwapVert, null) }
             },
             label = { Text("Transfers", fontSize = 11.sp) },
-            colors = navColors()
-        )
-        NavigationBarItem(
-            selected = selectedTab == 2,
-            onClick = { onTabSelected(2) },
-            icon = { Icon(Icons.Rounded.TextFields, null) },
-            label = { Text("Received", fontSize = 11.sp) },
             colors = navColors()
         )
     }
@@ -710,6 +736,125 @@ fun TransferCard(transfer: TransferItem, onDelete: () -> Unit) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(transfer.sizeDisplay, color = TextMuted, fontSize = 10.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun ClipboardTab(
+    history: List<String>,
+    selectedPeer: PeerDevice?,
+    onCopyText: (String) -> Unit,
+    onDeleteText: (String) -> Unit,
+    onClearAll: () -> Unit,
+    onSendText: (String) -> Unit
+) {
+    val context = LocalContext.current
+    if (history.isEmpty()) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Rounded.ContentPaste, null, tint = TextMuted, modifier = Modifier.size(48.dp))
+                Spacer(Modifier.height(12.dp))
+                Text("Clipboard history is empty", color = TextMuted, fontSize = 14.sp)
+                Text("Texts copied on this device appear here", color = TextMuted.copy(0.6f), fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 4.dp))
+            }
+        }
+        return
+    }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (selectedPeer == null) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = Teal400.copy(alpha = 0.08f)),
+                    border = BorderStroke(1.dp, Teal400.copy(alpha = 0.25f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Rounded.Info, null, tint = Teal400, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Select a device in the Devices tab to enable direct sharing of clipboard items.",
+                            color = TextSecondary, fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+        }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp, start = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "CLIPBOARD HISTORY", color = TextMuted, fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp
+                )
+                Text(
+                    "Clear All",
+                    color = Teal400,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { onClearAll() }
+                )
+            }
+        }
+        items(history, key = { it }) { text ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = CardBg),
+                border = BorderStroke(1.dp, BorderColor)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.ContentPaste, null, tint = Teal400, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Copied Text", color = Teal400, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.weight(1f))
+                        IconButton(
+                            onClick = { onCopyText(text) },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(Icons.Rounded.ContentCopy, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+                        }
+                        if (selectedPeer != null) {
+                            Spacer(Modifier.width(4.dp))
+                            IconButton(
+                                onClick = { onSendText(text) },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(Icons.Rounded.Send, null, tint = TealGlow, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        IconButton(
+                            onClick = { onDeleteText(text) },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.Delete,
+                                contentDescription = "Delete",
+                                tint = DangerRed.copy(alpha = 0.8f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = text, color = TextPrimary, fontSize = 14.sp,
+                        maxLines = 5, overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }

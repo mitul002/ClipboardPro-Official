@@ -10,19 +10,19 @@ import androidx.compose.ui.text.font.FontWeight
 
 // Desktop-matched color palette
 val Teal400    = Color(0xFF4F46E5) // Primary Accent Indigo
-val TealGlow   = Color(0xFF6366F1) // Indigo Glow
-val Blue400    = Color(0xFF818CF8) // Secondary Accent Indigo
-val DarkBg     = Color(0xFF0D0D0F)
-val CardBg     = Color(0xFF1A1A1F)
-val SurfaceBg  = Color(0xFF141418)
-val ElevatedBg = Color(0xFF222228)
-val TextPrimary = Color(0xFFE8E8F0)
-val TextSecondary = Color(0xFFB0B0C0)
-val TextMuted  = Color(0xFF888899)
-val DangerRed  = Color(0xFFFF5555)
-val SuccessGreen = Color(0xFF27C93F)
-val WarningAmber = Color(0xFFFFA500)
-val BorderColor = Color(0xFF2A2A35)
+val TealGlow   = Color(0xFF6366F1) // Secondary Accent Glow
+val Blue400    = Color(0xFF818CF8) // Accent Light
+val DarkBg     = Color(0xFF0F172A) // BgDeepColor
+val CardBg     = Color(0xFF1E293B) // BgCardColor / BgSidebarColor
+val SurfaceBg  = Color(0xFF1E293B)
+val ElevatedBg = Color(0xFF334155) // BgCardHoverColor
+val TextPrimary = Color(0xFFF8FAFC) // TextPrimaryColor
+val TextSecondary = Color(0xFFCBD5E1) // TextSecondaryColor
+val TextMuted  = Color(0xFFA3B1C6) // TextMutedColor
+val DangerRed  = Color(0xFFEF4444) // DangerColor
+val SuccessGreen = Color(0xFF10B981) // SuccessColor
+val WarningAmber = Color(0xFFF59E0B) // Amber
+val BorderColor = Color(0xFF2D3748) // BorderColor
 
 private val DarkColors = darkColorScheme(
     primary          = Teal400,
