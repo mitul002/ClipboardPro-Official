@@ -120,13 +120,17 @@ namespace ClipboardPro.Views
 
             foreach (string file in files)
             {
+                bool isDir = System.IO.Directory.Exists(file);
                 var transfer = new TransferModel 
                 { 
                     FileName = System.IO.Path.GetFileName(file), 
                     Progress = 0, 
-                    Status = "Sending..." 
+                    Status = isDir ? "Folders not supported" : "Sending...",
+                    IsActive = !isDir
                 };
                 _transfers.Insert(0, transfer);
+
+                if (isDir) continue;
 
                 try 
                 {

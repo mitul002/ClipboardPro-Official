@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.ClipboardPro" parent="android:Theme.Material.NoTitleBar">
+        <item name="android:windowBackground">#0D0D0F</item>
+        <item name="android:statusBarColor">#0D0D0F</item>
+        <item name="android:navigationBarColor">#1A1A1F</item>
+    </style>
+</resources>

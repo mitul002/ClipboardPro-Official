@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ClipboardPro Share</string>
+    <string name="notification_channel_name">Local Share</string>
+    <string name="notification_searching">Scanning for nearby devices...</string>
+</resources>
