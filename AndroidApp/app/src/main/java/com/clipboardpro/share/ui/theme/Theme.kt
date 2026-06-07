@@ -9,9 +9,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 
 // Desktop-matched color palette
-val Teal400    = Color(0xFF00B4D8)
-val TealGlow   = Color(0xFF48CAE4)
-val Blue400    = Color(0xFF4FACFE)
+val Teal400    = Color(0xFF4F46E5) // Primary Accent Indigo
+val TealGlow   = Color(0xFF6366F1) // Indigo Glow
+val Blue400    = Color(0xFF818CF8) // Secondary Accent Indigo
 val DarkBg     = Color(0xFF0D0D0F)
 val CardBg     = Color(0xFF1A1A1F)
 val SurfaceBg  = Color(0xFF141418)

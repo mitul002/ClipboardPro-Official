@@ -105,10 +105,11 @@ class TransferReceiver(
                         return
                     }
 
-                    val rawName = if (item.Type == ClipboardItemType.IMAGE.value)
+                    val rawName = if (item.Type == ClipboardItemType.IMAGE.value) {
                         "img_${System.currentTimeMillis()}.png"
-                    else
-                        File(item.Content).name
+                    } else {
+                        item.Content.substringAfterLast('\\').substringAfterLast('/')
+                    }
 
                     // Security sanitization
                     val safeName = sanitizeFileName(rawName)
@@ -123,6 +124,7 @@ class TransferReceiver(
                     onTransferUpdate(transfer)
 
                     var success = false
+                    var savedUri: String? = null
                     try {
                         val prefs = context.getSharedPreferences("localshare_prefs", android.content.Context.MODE_PRIVATE)
                         val subFolder = prefs.getString("save_folder", "Received") ?: "Received"
@@ -135,6 +137,7 @@ class TransferReceiver(
                             }
                             val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
                             if (uri != null) {
+                                savedUri = uri.toString()
                                 resolver.openOutputStream(uri).use { fos ->
                                     if (fos != null) {
                                         val buffer = ByteArray(81920)
@@ -161,6 +164,7 @@ class TransferReceiver(
                             val receivedDir = File(downloadsDir, subFolder)
                             if (!receivedDir.exists()) receivedDir.mkdirs()
                             val targetFile = File(receivedDir, safeName)
+                            savedUri = android.net.Uri.fromFile(targetFile).toString()
                             java.io.FileOutputStream(targetFile).use { fos ->
                                 val buffer = ByteArray(81920)
                                 var totalRead = 0L
@@ -188,9 +192,10 @@ class TransferReceiver(
                         onTransferUpdate(transfer.copy(
                             progress = 100,
                             bytesTransferred = payloadLen,
-                            status = TransferStatus.COMPLETED
+                            status = TransferStatus.COMPLETED,
+                            fileUri = savedUri
                         ))
-                        Log.i(TAG, "File received: $safeName")
+                        Log.i(TAG, "File received: $safeName, uri: $savedUri")
                     } else {
                         onTransferUpdate(transfer.copy(
                             status = TransferStatus.FAILED

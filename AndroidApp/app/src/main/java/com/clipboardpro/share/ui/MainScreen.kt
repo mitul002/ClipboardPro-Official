@@ -37,6 +37,12 @@ import com.clipboardpro.share.model.TransferItem
 import com.clipboardpro.share.model.TransferStatus
 import com.clipboardpro.share.service.LocalShareService
 import com.clipboardpro.share.ui.theme.*
+import com.clipboardpro.share.R
+import androidx.compose.ui.res.painterResource
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.flow.emptyFlow
 import java.io.File
 
@@ -136,15 +142,13 @@ fun TopBar(peers: List<PeerDevice>, isServiceBound: Boolean, onSettingsClick: ()
             .padding(horizontal = 20.dp, vertical = 14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "App Logo",
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Teal400.copy(0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Rounded.Share, null, tint = Teal400, modifier = Modifier.size(20.dp))
-            }
+            )
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
@@ -571,6 +575,7 @@ fun TransfersTab(transfers: List<TransferItem>) {
 
 @Composable
 fun TransferCard(transfer: TransferItem) {
+    val context = LocalContext.current
     val statusColor = when (transfer.status) {
         TransferStatus.COMPLETED -> SuccessGreen
         TransferStatus.FAILED, TransferStatus.CANCELLED -> DangerRed
@@ -580,8 +585,19 @@ fun TransferCard(transfer: TransferItem) {
     val dirIcon = if (transfer.direction == TransferDirection.SEND)
         Icons.Rounded.Upload else Icons.Rounded.Download
 
+    val isClickable = transfer.status == TransferStatus.COMPLETED && transfer.fileUri != null
+    val cardModifier = if (isClickable) {
+        Modifier
+            .fillMaxWidth()
+            .clickable {
+                transfer.fileUri?.let { openReceivedFile(context, it) }
+            }
+    } else {
+        Modifier.fillMaxWidth()
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = cardModifier,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = CardBg),
         border = BorderStroke(1.dp, BorderColor)
@@ -623,6 +639,31 @@ fun TransferCard(transfer: TransferItem) {
                 Text(transfer.sizeDisplay, color = TextMuted, fontSize = 10.sp)
             }
         }
+    }
+}
+
+private fun openReceivedFile(context: Context, fileUriStr: String) {
+    try {
+        val parsedUri = Uri.parse(fileUriStr)
+        val uri = if (parsedUri.scheme == "file") {
+            val file = parsedUri.path?.let { File(it) }
+            if (file != null && file.exists()) {
+                FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+            } else {
+                parsedUri
+            }
+        } else {
+            parsedUri
+        }
+        val type = context.contentResolver.getType(uri) ?: "*/*"
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, type)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(context, "Cannot open file: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
     }
 }
 

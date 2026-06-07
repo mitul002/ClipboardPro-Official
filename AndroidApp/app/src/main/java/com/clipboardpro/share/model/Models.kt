@@ -15,7 +15,8 @@ data class TransferItem(
     var status: TransferStatus = TransferStatus.PENDING,
     var bytesTransferred: Long = 0L,
     var totalBytes: Long = 0L,
-    var peerName: String = ""
+    var peerName: String = "",
+    val fileUri: String? = null
 ) {
     val sizeDisplay: String get() {
         if (totalBytes <= 0L) return ""
