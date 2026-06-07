@@ -400,7 +400,7 @@ fun SettingsScreen(
                                         }
                                     }
                                 }
-                            } {
+                            ) {
                                 Text("Replace All", color = DangerRed)
                             }
                             TextButton(
