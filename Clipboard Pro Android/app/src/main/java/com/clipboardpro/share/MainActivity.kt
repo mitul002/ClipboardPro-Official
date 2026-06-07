@@ -27,10 +27,6 @@ import com.clipboardpro.share.model.ClipboardItemType
 
 class MainActivity : ComponentActivity() {
 
-    private val clipboardListener = android.content.ClipboardManager.OnPrimaryClipChangedListener {
-        checkClipboardAndSave()
-    }
-
     private fun checkClipboardAndSave() {
         try {
             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return
@@ -179,15 +175,11 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         isAppAllowedState.value = com.clipboardpro.share.service.LicenseService(this).isAppAllowed()
-        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-        cm?.addPrimaryClipChangedListener(clipboardListener)
         checkClipboardAndSave()
     }
 
     override fun onPause() {
         super.onPause()
-        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-        cm?.removePrimaryClipChangedListener(clipboardListener)
     }
 
     override fun onDestroy() {

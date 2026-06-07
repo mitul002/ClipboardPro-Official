@@ -96,6 +96,73 @@ class TransferReceiver(
                     item.Type == ClipboardItemType.COLOR.value) {
                     Log.i(TAG, "Text received from $peerIp: ${item.Content.take(100)}")
                     onTextReceived(item.Content, peerIp)
+
+                    // Write received text as a file in the transfers folder (Downloads/Received)
+                    val rawName = "text_${System.currentTimeMillis()}.txt"
+                    val safeName = sanitizeFileName(rawName)
+                    val payloadBytes = item.Content.toByteArray(Charsets.UTF_8)
+                    val payloadLen = payloadBytes.size.toLong()
+
+                    val transfer = TransferItem(
+                        fileName = safeName,
+                        direction = TransferDirection.RECEIVE,
+                        totalBytes = payloadLen,
+                        status = TransferStatus.ACTIVE,
+                        peerName = peerIp
+                    )
+                    onTransferUpdate(transfer)
+
+                    var success = false
+                    var savedUri: String? = null
+                    try {
+                        val prefs = context.getSharedPreferences("localshare_prefs", android.content.Context.MODE_PRIVATE)
+                        val subFolder = prefs.getString("save_folder", "Received") ?: "Received"
+
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                            val resolver = context.contentResolver
+                            val contentValues = android.content.ContentValues().apply {
+                                put(android.provider.MediaStore.Downloads.DISPLAY_NAME, safeName)
+                                put(android.provider.MediaStore.Downloads.RELATIVE_PATH, "Download/$subFolder")
+                                put(android.provider.MediaStore.Downloads.MIME_TYPE, "text/plain")
+                            }
+                            val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                            if (uri != null) {
+                                savedUri = uri.toString()
+                                resolver.openOutputStream(uri).use { fos ->
+                                    if (fos != null) {
+                                        fos.write(payloadBytes)
+                                        success = true
+                                    }
+                                }
+                            }
+                        } else {
+                            val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+                            val receivedDir = File(downloadsDir, subFolder)
+                            if (!receivedDir.exists()) receivedDir.mkdirs()
+                            val targetFile = File(receivedDir, safeName)
+                            savedUri = android.net.Uri.fromFile(targetFile).toString()
+                            java.io.FileOutputStream(targetFile).use { fos ->
+                                fos.write(payloadBytes)
+                                success = true
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error writing text transfer file: ${e.message}")
+                    }
+
+                    if (success) {
+                        onTransferUpdate(transfer.copy(
+                            progress = 100,
+                            bytesTransferred = payloadLen,
+                            status = TransferStatus.COMPLETED,
+                            fileUri = savedUri
+                        ))
+                        Log.i(TAG, "Text transfer saved as file: $safeName, uri: $savedUri")
+                    } else {
+                        onTransferUpdate(transfer.copy(
+                            status = TransferStatus.FAILED
+                        ))
+                    }
                     return
                 }
 

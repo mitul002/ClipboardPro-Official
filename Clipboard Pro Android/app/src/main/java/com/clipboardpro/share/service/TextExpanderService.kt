@@ -86,69 +86,7 @@ class TextExpanderService : AccessibilityService() {
             }
         }
 
-        // ── Clipboard monitoring from Accessibility Service ───────────────────
-        // Accessibility Services are treated as foreground-equivalent by Android
-        // and can read the clipboard even in background (unlike regular background services).
         clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboardManager.addPrimaryClipChangedListener {
-            try {
-                val clip = clipboardManager.primaryClip ?: return@addPrimaryClipChangedListener
-                if (clip.itemCount == 0) return@addPrimaryClipChangedListener
-
-                val label = clip.description?.label?.toString() ?: ""
-
-                // Ignore clips we set ourselves during expansion or sync
-                if (label == "ClipboardPro Sync" ||
-                    label == "ClipExpand" ||
-                    label == lastSelfSetLabel) return@addPrimaryClipChangedListener
-
-                val text = clip.getItemAt(0)?.text?.toString() ?: return@addPrimaryClipChangedListener
-                if (text.isBlank()) return@addPrimaryClipChangedListener
-                if (text == lastSavedContent) return@addPrimaryClipChangedListener // deduplicate
-
-                lastSavedContent = text
-                scope.launch {
-                    saveClipboardItem(text)
-                }
-            } catch (e: Throwable) {
-                Log.e(TAG, "Clipboard listener error: ${e.localizedMessage}")
-            }
-        }
-    }
-
-    /** Save a text item directly to Room database from the Accessibility Service */
-    private suspend fun saveClipboardItem(text: String) {
-        val clean = text.trim()
-        if (clean.isBlank()) return
-        try {
-            val dao = database.clipboardDao()
-            val existing = dao.getAllItems().find { it.content == clean }
-            val type = ContentParser.detectType(clean)
-            val isSensitive = ContentParser.isSensitive(clean)
-
-            val entity = if (existing != null) {
-                existing.copy(timestamp = System.currentTimeMillis())
-            } else {
-                ClipboardItemEntity(
-                    id = java.util.UUID.randomUUID().toString(),
-                    content = clean,
-                    type = type.value,
-                    timestamp = System.currentTimeMillis(),
-                    isSensitive = isSensitive,
-                    isMasked = isSensitive,
-                    isJson = clean.startsWith("{") || clean.startsWith("[")
-                )
-            }
-            dao.insertItem(entity)
-            Log.i(TAG, "Clipboard item saved: ${clean.take(50)}")
-
-            // Trim history
-            val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
-            val maxItems = prefs.getInt("max_history_items", 200)
-            dao.trimExcessItems(maxItems)
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to save clipboard item: ${e.localizedMessage}")
-        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
