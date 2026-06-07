@@ -123,7 +123,7 @@ fun MainScreen(
                             }
                         )
                         1 -> TransfersTab(transfers = transfers)
-                        2 -> ReceivedTextsTab(receivedTexts = receivedTexts)
+                        2 -> ReceivedTextsTab(receivedTexts = receivedTexts, peers = peers)
                     }
                 }
             }
@@ -437,7 +437,7 @@ fun SendPanel(
 }
 
 @Composable
-fun ReceivedTextsTab(receivedTexts: List<Pair<String, String>>) {
+fun ReceivedTextsTab(receivedTexts: List<Pair<String, String>>, peers: List<PeerDevice>) {
     val context = LocalContext.current
     if (receivedTexts.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -463,6 +463,7 @@ fun ReceivedTextsTab(receivedTexts: List<Pair<String, String>>) {
             )
         }
         items(receivedTexts.reversed()) { (text, from) ->
+            val displayName = peers.find { it.ip == from }?.name ?: from
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -473,7 +474,7 @@ fun ReceivedTextsTab(receivedTexts: List<Pair<String, String>>) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.Computer, null, tint = Teal400, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text(from, color = Teal400, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Text(displayName, color = Teal400, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.weight(1f))
                         IconButton(
                             onClick = {

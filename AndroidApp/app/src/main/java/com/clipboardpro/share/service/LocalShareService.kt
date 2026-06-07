@@ -90,9 +90,10 @@ class LocalShareService : Service() {
                     val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     clipboardManager.setPrimaryClip(ClipData.newPlainText("ClipboardPro Sync", text))
                 }
-                _receivedTexts.value = _receivedTexts.value + Pair(text, from)
-                updateNotification("Text received from $from")
-                Log.i(TAG, "Text from $from: ${text.take(50)}")
+                val resolvedName = _peers.value.find { it.ip == from }?.name ?: from
+                _receivedTexts.value = _receivedTexts.value + Pair(text, resolvedName)
+                updateNotification("Text received from $resolvedName")
+                Log.i(TAG, "Text from $resolvedName: ${text.take(50)}")
             }
         )
         tcpPort = transferReceiver!!.start()

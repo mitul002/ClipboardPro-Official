@@ -35,8 +35,12 @@ jobs:
         ./gradlew assembleDebug
       working-directory: AndroidApp
 
+    - name: Rename APK File
+      run: |
+        mv AndroidApp/app/build/outputs/apk/debug/app-debug.apk AndroidApp/app/build/outputs/apk/debug/Local_Share.apk
+
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug
-        path: AndroidApp/app/build/outputs/apk/debug/*.apk
+        name: Local Share
+        path: AndroidApp/app/build/outputs/apk/debug/Local_Share.apk
