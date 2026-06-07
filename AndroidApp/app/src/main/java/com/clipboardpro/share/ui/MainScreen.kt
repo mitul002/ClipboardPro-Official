@@ -153,6 +153,10 @@ fun MainScreen(
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString() ?: return@DevicesTab
                         service?.sendText(text, peer)
+                    },
+                    onSendText = { text ->
+                        val peer = selectedPeer ?: return@DevicesTab
+                        service?.sendText(text, peer)
                     }
                 )
                 1 -> TransfersTab(transfers = transfers)
@@ -167,7 +171,8 @@ fun DevicesTab(
     selectedPeer: PeerDevice?,
     onPeerSelected: (PeerDevice) -> Unit,
     onSendFile: () -> Unit,
-    onSendClipboard: () -> Unit
+    onSendClipboard: () -> Unit,
+    onSendText: (String) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -207,7 +212,8 @@ fun DevicesTab(
                 SendPanel(
                     peer = selectedPeer,
                     onSendFile = onSendFile,
-                    onSendClipboard = onSendClipboard
+                    onSendClipboard = onSendClipboard,
+                    onSendText = onSendText
                 )
             }
         }
@@ -277,7 +283,13 @@ fun PeerCard(peer: PeerDevice, isSelected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun SendPanel(peer: PeerDevice?, onSendFile: () -> Unit, onSendClipboard: () -> Unit) {
+fun SendPanel(
+    peer: PeerDevice?,
+    onSendFile: () -> Unit,
+    onSendClipboard: () -> Unit,
+    onSendText: (String) -> Unit
+) {
+    var textInput by remember { mutableStateOf("") }
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -294,7 +306,43 @@ fun SendPanel(peer: PeerDevice?, onSendFile: () -> Unit, onSendClipboard: () -> 
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.5.sp
             )
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            OutlinedTextField(
+                value = textInput,
+                onValueChange = { textInput = it },
+                placeholder = { Text("Type text to send...", color = TextMuted, fontSize = 13.sp) },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                maxLines = 2,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedBorderColor = Teal400,
+                    unfocusedBorderColor = TextMuted.copy(0.3f),
+                    cursorColor = Teal400
+                ),
+                shape = RoundedCornerShape(10.dp),
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            if (textInput.isNotBlank()) {
+                                onSendText(textInput)
+                                textInput = ""
+                            }
+                        },
+                        enabled = textInput.isNotBlank()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Send,
+                            contentDescription = "Send",
+                            tint = if (textInput.isNotBlank()) Teal400 else TextMuted.copy(0.4f)
+                        )
+                    }
+                }
+            )
+            
             Spacer(modifier = Modifier.height(12.dp))
+            
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(
                     onClick = onSendFile,

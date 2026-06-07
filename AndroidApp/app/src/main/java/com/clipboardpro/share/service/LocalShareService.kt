@@ -79,10 +79,8 @@ class LocalShareService : Service() {
         val instanceId = generateInstanceId()
         val deviceName = android.os.Build.MODEL
 
-        val saveDir = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            "ClipboardPro"
-        )
+        val baseDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: filesDir
+        val saveDir = File(baseDir, "ClipboardPro")
 
         // Start TCP receiver first to get port
         transferReceiver = TransferReceiver(
@@ -175,7 +173,7 @@ class LocalShareService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("ClipboardPro Share")
             .setContentText(text)
-            .setSmallIcon(android.R.drawable.ic_menu_share)
+            .setSmallIcon(R.drawable.logo)
             .setContentIntent(pi)
             .setOngoing(true)
             .build()
