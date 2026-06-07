@@ -32,15 +32,20 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun checkClipboardAndSave() {
-        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return
-        val clip = cm.primaryClip ?: return
-        if (clip.itemCount == 0) return
-        val text = clip.getItemAt(0)?.text?.toString() ?: return
-        val clean = text.trim()
-        if (clean.isBlank()) return
-
-        val database = AppDatabase.getDatabase(this)
-        lifecycleScope.launch(Dispatchers.IO) {
+        try {
+            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return
+            val clip = cm.primaryClip ?: return
+            if (clip.itemCount == 0) return
+            
+            val label = clip.description?.label?.toString() ?: ""
+            if (label == "ClipboardPro Sync" || label == "ClipExpand") return
+            
+            val text = clip.getItemAt(0)?.text?.toString() ?: return
+            val clean = text.trim()
+            if (clean.isBlank()) return
+            
+            val database = AppDatabase.getDatabase(this@MainActivity)
+            kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
             try {
                 val dao = database.clipboardDao()
                 val existing = dao.getAllItems().find { it.content == clean }
@@ -69,6 +74,9 @@ class MainActivity : ComponentActivity() {
             } catch (e: Exception) {
                 android.util.Log.e("MainActivity", "Failed to auto-save clipboard: ${e.localizedMessage}")
             }
+        }
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error in checkClipboardAndSave: ${e.localizedMessage}")
         }
     }
 
@@ -174,13 +182,6 @@ class MainActivity : ComponentActivity() {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
         cm?.addPrimaryClipChangedListener(clipboardListener)
         checkClipboardAndSave()
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            checkClipboardAndSave()
-        }
     }
 
     override fun onPause() {

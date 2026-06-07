@@ -169,15 +169,24 @@ class TextExpanderService : AccessibilityService() {
             return
         }
 
-        val text = sourceNode.text?.toString() ?: ""
+        val rawText = sourceNode.text?.toString() ?: ""
+        val text = if (rawText.isBlank() && event.text.isNotEmpty()) event.text.joinToString("") else rawText
+        
+        val cursorPosition = sourceNode.textSelectionEnd
+        val textBeforeCursor = if (cursorPosition in 0..text.length) {
+            text.substring(0, cursorPosition)
+        } else {
+            text
+        }
 
         // ── Undo / Backspace detection ────────────────────────────────────────
-        if (lastExpandedText.isNotEmpty() && text == lastExpandedText.dropLast(1)) {
+        if (lastExpandedText.isNotEmpty() && textBeforeCursor == lastExpandedText.dropLast(1)) {
             isExpanding = true
             val cleanTrigger = getCleanTrigger(lastTrigger)
             val prefixLen = preExpansionText.length - lastTrigger.length
             val prefix = if (prefixLen >= 0) preExpansionText.substring(0, prefixLen) else ""
-            val restoredText = prefix + cleanTrigger
+            val textAfterCursor = if (cursorPosition in 0..text.length) text.substring(cursorPosition) else ""
+            val restoredText = prefix + cleanTrigger + textAfterCursor
 
             setTextViaClipboard(sourceNode, restoredText)
 
@@ -190,7 +199,7 @@ class TextExpanderService : AccessibilityService() {
         }
 
         // Cancel undo window if user typed something else
-        if (lastExpandedText.isNotEmpty() && text != lastExpandedText) {
+        if (lastExpandedText.isNotEmpty() && textBeforeCursor != lastExpandedText) {
             lastExpandedText = ""
             lastTrigger = ""
             preExpansionText = ""
@@ -204,11 +213,12 @@ class TextExpanderService : AccessibilityService() {
         // ── Snippet expansion scan ─────────────────────────────────────────────
         for (snippet in snippetsList) {
             val trigger = snippet.trigger
-            if (text.endsWith(trigger)) {
+            if (textBeforeCursor.endsWith(trigger)) {
                 isExpanding = true
 
-                val prefix = text.substring(0, text.length - trigger.length)
-                val expanded = prefix + snippet.content
+                val prefix = textBeforeCursor.substring(0, textBeforeCursor.length - trigger.length)
+                val textAfterCursor = if (cursorPosition in 0..text.length) text.substring(cursorPosition) else ""
+                val expanded = prefix + snippet.content + textAfterCursor
 
                 // First try ACTION_SET_TEXT (works in some apps e.g. Keep Notes)
                 val setTextArgs = Bundle().apply {
@@ -217,10 +227,11 @@ class TextExpanderService : AccessibilityService() {
                 val setTextSuccess = sourceNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, setTextArgs)
 
                 if (setTextSuccess) {
-                    // Move cursor to end
+                    // Move cursor to end of expanded text
+                    val newCursorPos = prefix.length + snippet.content.length
                     val selArgs = Bundle().apply {
-                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, expanded.length)
-                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, expanded.length)
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, newCursorPos)
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, newCursorPos)
                     }
                     sourceNode.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs)
                 } else {
@@ -228,8 +239,8 @@ class TextExpanderService : AccessibilityService() {
                     // 1. Select all existing text that is the trigger
                     //    Send backspaces to delete the trigger chars
                     val delArgs = Bundle().apply {
-                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, prefix.length)
-                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, text.length)
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, textBeforeCursor.length - trigger.length)
+                        putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, textBeforeCursor.length)
                     }
                     sourceNode.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, delArgs)
 
@@ -253,9 +264,9 @@ class TextExpanderService : AccessibilityService() {
                 }
 
                 // Arm undo state
-                preExpansionText = text
+                preExpansionText = textBeforeCursor
                 lastTrigger = trigger
-                lastExpandedText = expanded
+                lastExpandedText = prefix + snippet.content
 
                 isExpanding = false
                 break
