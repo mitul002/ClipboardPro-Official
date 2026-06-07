@@ -119,20 +119,9 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         isAppAllowedState.value = com.clipboardpro.share.service.LicenseService(this).isAppAllowed()
-        try {
-            val cb = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            if (cb.hasPrimaryClip() && isAppAllowedState.value) {
-                val clip = cb.primaryClip
-                if (clip != null && clip.itemCount > 0) {
-                    val text = clip.getItemAt(0).text?.toString()
-                    if (!text.isNullOrBlank()) {
-                        shareService?.addClipboardItem(text)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            // Ignore security exception if clipboard access is denied
-        }
+        // We do NOT manually read and re-insert the clipboard on resume —
+        // the ClipboardManager listener in LocalShareService handles this automatically.
+        // Doing so here would cause duplicate entries and potential crashes.
     }
 
     override fun onDestroy() {

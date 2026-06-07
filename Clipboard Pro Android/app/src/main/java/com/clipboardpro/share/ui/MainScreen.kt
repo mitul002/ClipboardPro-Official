@@ -1560,7 +1560,6 @@ fun TransfersTab(
 @Composable
 fun TransferCard(transfer: TransferItem, onDelete: () -> Unit) {
     val context = LocalContext.current
-    var showOptionsDialog by remember { mutableStateOf(false) }
 
     val statusColor = when (transfer.status) {
         TransferStatus.COMPLETED -> SuccessGreen
@@ -1571,16 +1570,12 @@ fun TransferCard(transfer: TransferItem, onDelete: () -> Unit) {
     val dirIcon = if (transfer.direction == TransferDirection.SEND)
         Icons.Rounded.Upload else Icons.Rounded.Download
 
-    val cardModifier = Modifier
-        .fillMaxWidth()
-        .clickable {
-            if (transfer.status == TransferStatus.COMPLETED) {
-                showOptionsDialog = true
-            }
-        }
-
     Card(
-        modifier = cardModifier,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = transfer.status == TransferStatus.COMPLETED && transfer.fileUri != null) {
+                openReceivedFile(context, transfer.fileUri!!)
+            },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = CardBg),
         border = BorderStroke(1.dp, BorderColor)
@@ -1611,9 +1606,27 @@ fun TransferCard(transfer: TransferItem, onDelete: () -> Unit) {
                     color = statusColor, fontSize = 11.sp, fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.width(8.dp))
+                // Copy button — only shown for completed transfers with a URI
+                if (transfer.status == TransferStatus.COMPLETED && transfer.fileUri != null) {
+                    IconButton(
+                        onClick = {
+                            val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            cb.setPrimaryClip(ClipData.newPlainText("File Path", transfer.fileUri))
+                            Toast.makeText(context, "Path copied", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            Icons.Rounded.ContentCopy,
+                            contentDescription = "Copy Path",
+                            tint = Teal400.copy(alpha = 0.8f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
                 IconButton(
                     onClick = onDelete,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
                 ) {
                     Icon(
                         Icons.Rounded.Delete,
@@ -1633,100 +1646,16 @@ fun TransferCard(transfer: TransferItem, onDelete: () -> Unit) {
                 Spacer(Modifier.height(4.dp))
                 Text(transfer.sizeDisplay, color = TextMuted, fontSize = 10.sp)
             }
-        }
-    }
-
-    if (showOptionsDialog) {
-        AlertDialog(
-            onDismissRequest = { showOptionsDialog = false },
-            containerColor = CardBg,
-            title = {
+            // Tap hint for completed files
+            if (transfer.status == TransferStatus.COMPLETED && transfer.fileUri != null) {
+                Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "Transfer Options",
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    "Tap to open file",
+                    color = TextMuted.copy(0.6f),
+                    fontSize = 10.sp
                 )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "File: ${transfer.fileName}",
-                        color = TextSecondary,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    if (transfer.fileUri != null) {
-                        Text(
-                            text = "Path: ${transfer.fileUri}",
-                            color = TextMuted,
-                            fontSize = 11.sp,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (transfer.fileUri != null) {
-                        Button(
-                            onClick = {
-                                showOptionsDialog = false
-                                transfer.fileUri.let { openReceivedFile(context, it) }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Teal400),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Icon(Icons.Rounded.Launch, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Open File", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        }
-                        
-                        OutlinedButton(
-                            onClick = {
-                                showOptionsDialog = false
-                                val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                cb.setPrimaryClip(ClipData.newPlainText("File Path", transfer.fileUri))
-                                Toast.makeText(context, "File path copied to clipboard", Toast.LENGTH_SHORT).show()
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            border = BorderStroke(1.dp, Teal400),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Icon(Icons.Rounded.ContentCopy, null, tint = Teal400, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Copy Path", color = Teal400, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                        }
-                    }
-                    
-                    Button(
-                        onClick = {
-                            showOptionsDialog = false
-                            onDelete()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = DangerRed),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(Icons.Rounded.Delete, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Delete from History", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    }
-                    
-                    TextButton(
-                        onClick = { showOptionsDialog = false },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Cancel", color = TextMuted, fontSize = 12.sp)
-                    }
-                }
             }
-        )
+        }
     }
 }
 

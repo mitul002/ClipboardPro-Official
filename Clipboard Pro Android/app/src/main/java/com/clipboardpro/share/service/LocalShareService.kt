@@ -155,32 +155,34 @@ class LocalShareService : Service() {
         }
     }
 
+    // Tracks the last clip label we set ourselves so we can ignore our own events
+    @Volatile private var lastSelfSetClipLabel: String? = null
+
     private fun handleClipboardChange(clipboardManager: ClipboardManager) {
-        scope.launch {
-            var clip: ClipData? = null
-            for (i in 0 until 10) {
-                try {
-                    clip = clipboardManager.primaryClip
-                    if (clip != null) break
-                } catch (e: Exception) {
-                    Log.w(TAG, "Clipboard locked, retrying ${i + 1}/10...")
-                }
-                kotlinx.coroutines.delay(100)
-            }
-            if (clip == null || clip.itemCount == 0) return@launch
+        scope.launch(Dispatchers.IO) {
+            try {
+                val clip = try { clipboardManager.primaryClip } catch (e: Exception) { null }
+                if (clip == null || clip.itemCount == 0) return@launch
 
-            val item = clip.getItemAt(0)
-            val text = item.text?.toString()
-            val uri = item.uri
+                val clipLabel = clip.description?.label?.toString() ?: ""
 
-            if (!text.isNullOrBlank()) {
-                if (text.startsWith("ClipboardPro Sync")) return@launch
-                addClipboardItem(text)
-            } else if (uri != null) {
-                val typeStr = contentResolver.getType(uri) ?: ""
-                if (typeStr.startsWith("image/") || uri.path?.endsWith(".png") == true || uri.path?.endsWith(".jpg") == true) {
-                    processClipboardImage(uri)
+                // Ignore clipboard events that we set ourselves (from received texts or user copy)
+                if (clipLabel == "ClipboardPro Sync" || clipLabel == lastSelfSetClipLabel) return@launch
+
+                val item = clip.getItemAt(0)
+                val text = item?.text?.toString()
+                val uri = item?.uri
+
+                if (!text.isNullOrBlank()) {
+                    addClipboardItem(text)
+                } else if (uri != null) {
+                    val typeStr = try { contentResolver.getType(uri) } catch (e: Exception) { null } ?: ""
+                    if (typeStr.startsWith("image/") || uri.path?.endsWith(".png") == true || uri.path?.endsWith(".jpg") == true) {
+                        processClipboardImage(uri)
+                    }
                 }
+            } catch (e: Throwable) {
+                Log.e(TAG, "Error handling clipboard change: ${e.localizedMessage}")
             }
         }
     }
@@ -273,27 +275,29 @@ class LocalShareService : Service() {
             context = this,
             onTransferUpdate = { item -> updateTransfer(item) },
             onTextReceived = { text, from ->
-                scope.launch {
+                scope.launch(Dispatchers.IO) {
+                    val resolvedName = _peers.value.find { it.ip == from }?.name ?: from
+
                     val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
                     val autoClip = prefs.getBoolean("auto_clipboard", true)
                     if (autoClip) {
                         try {
+                            // Mark that we are about to set the clipboard ourselves so the listener ignores it
+                            lastSelfSetClipLabel = "ClipboardPro Sync"
                             val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             clipboardManager.setPrimaryClip(ClipData.newPlainText("ClipboardPro Sync", text))
                         } catch (e: Exception) {
                             Log.e(TAG, "Failed to set clipboard: ${e.localizedMessage}")
                         }
                     }
-                    
-                    val resolvedName = _peers.value.find { it.ip == from }?.name ?: from
-                    
-                    // Add received text directly to Room Database as a Clipboard item
+
+                    // Add received text directly to Room Database — do NOT go through clipboard listener to avoid duplication
                     addClipboardItem(
                         text = text,
                         category = "Received",
-                        title = "Received from $resolvedName"
+                        title = "From $resolvedName"
                     )
-                    
+
                     updateNotification("Text received from $resolvedName")
                     Log.i(TAG, "Text from $resolvedName: ${text.take(50)}")
                 }
