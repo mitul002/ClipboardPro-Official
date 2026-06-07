@@ -149,6 +149,7 @@ class TransferReceiver(
                     ))
                     Log.i(TAG, "File received: $safeName (${targetFile.length()} bytes)")
                 }
+                Unit
             } catch (e: Exception) {
                 Log.e(TAG, "Error handling client: ${e.message}")
             }

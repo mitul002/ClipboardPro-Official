@@ -21,3 +21,11 @@ backups/
 # OS files
 Thumbs.db
 Desktop.ini
+
+# Android
+**/AndroidApp/.gradle/
+**/AndroidApp/build/
+**/AndroidApp/app/build/
+**/AndroidApp/.idea/
+**/AndroidApp/*.iml
+**/AndroidApp/local.properties
