@@ -278,7 +278,12 @@ class TextExpanderService : AccessibilityService() {
                 return
             }
             // Fallback: select-all then paste
-            node.performAction(AccessibilityNodeInfo.ACTION_SELECT_ALL)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                node.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SELECT_ALL.id)
+            } else {
+                // Pre-Lollipop fallback using standard action integer ID (200)
+                node.performAction(200)
+            }
             lastSelfSetLabel = "ClipExpand"
             val prevClip = try { clipboardManager.primaryClip } catch (e: Exception) { null }
             clipboardManager.setPrimaryClip(ClipData.newPlainText("ClipExpand", text))
