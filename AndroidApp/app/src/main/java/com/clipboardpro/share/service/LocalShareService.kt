@@ -84,12 +84,15 @@ class LocalShareService : Service() {
             context = this,
             onTransferUpdate = { item -> updateTransfer(item) },
             onTextReceived = { text, from ->
-                // Copy to Android clipboard automatically
-                val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboardManager.setPrimaryClip(ClipData.newPlainText("ClipboardPro Sync", text))
+                val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
+                val autoClip = prefs.getBoolean("auto_clipboard", true)
+                if (autoClip) {
+                    val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboardManager.setPrimaryClip(ClipData.newPlainText("ClipboardPro Sync", text))
+                }
                 _receivedTexts.value = _receivedTexts.value + Pair(text, from)
-                updateNotification("Clipboard synced from $from")
-                Log.i(TAG, "Text from $from copied to clipboard: ${text.take(50)}")
+                updateNotification("Text received from $from")
+                Log.i(TAG, "Text from $from: ${text.take(50)}")
             }
         )
         tcpPort = transferReceiver!!.start()

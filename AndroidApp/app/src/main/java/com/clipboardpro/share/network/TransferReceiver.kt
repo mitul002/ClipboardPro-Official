@@ -124,11 +124,14 @@ class TransferReceiver(
 
                     var success = false
                     try {
+                        val prefs = context.getSharedPreferences("localshare_prefs", android.content.Context.MODE_PRIVATE)
+                        val subFolder = prefs.getString("save_folder", "Received") ?: "Received"
+
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                             val resolver = context.contentResolver
                             val contentValues = android.content.ContentValues().apply {
                                 put(android.provider.MediaStore.Downloads.DISPLAY_NAME, safeName)
-                                put(android.provider.MediaStore.Downloads.RELATIVE_PATH, "Download/Received")
+                                put(android.provider.MediaStore.Downloads.RELATIVE_PATH, "Download/$subFolder")
                             }
                             val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
                             if (uri != null) {
@@ -155,7 +158,7 @@ class TransferReceiver(
                             }
                         } else {
                             val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
-                            val receivedDir = File(downloadsDir, "Received")
+                            val receivedDir = File(downloadsDir, subFolder)
                             if (!receivedDir.exists()) receivedDir.mkdirs()
                             val targetFile = File(receivedDir, safeName)
                             java.io.FileOutputStream(targetFile).use { fos ->

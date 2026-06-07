@@ -210,10 +210,7 @@ namespace ClipboardPro.Views
 
         private void TxtSendText_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
-            if (TxtPlaceholder != null)
-            {
-                TxtPlaceholder.Visibility = string.IsNullOrEmpty(TxtSendText.Text) ? Visibility.Visible : Visibility.Collapsed;
-            }
+            // Placeholder is handled by InputBox style via the Tag property
         }
 
         private async void BtnSendText_Click(object sender, RoutedEventArgs e)
