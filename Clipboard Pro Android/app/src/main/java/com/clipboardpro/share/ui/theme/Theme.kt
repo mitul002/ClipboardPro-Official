@@ -121,9 +121,7 @@ fun ClipboardProTheme(themeMode: String, content: @Composable () -> Unit) {
         else    -> systemInDark
     }
 
-    SideEffect {
-        isDarkThemeGlobal = isDark
-    }
+    isDarkThemeGlobal = isDark
 
     MaterialTheme(
         colorScheme = if (isDark) DarkColors else LightColors,

@@ -17,8 +17,60 @@ import androidx.core.content.ContextCompat
 import com.clipboardpro.share.service.LocalShareService
 import com.clipboardpro.share.ui.theme.ClipboardProTheme
 import com.clipboardpro.share.ui.MainScreen
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import com.clipboardpro.share.data.AppDatabase
+import com.clipboardpro.share.data.ClipboardItemEntity
+import com.clipboardpro.share.service.ContentParser
+import com.clipboardpro.share.model.ClipboardItemType
 
 class MainActivity : ComponentActivity() {
+
+    private val clipboardListener = android.content.ClipboardManager.OnPrimaryClipChangedListener {
+        checkClipboardAndSave()
+    }
+
+    private fun checkClipboardAndSave() {
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return
+        val clip = cm.primaryClip ?: return
+        if (clip.itemCount == 0) return
+        val text = clip.getItemAt(0)?.text?.toString() ?: return
+        val clean = text.trim()
+        if (clean.isBlank()) return
+
+        val database = AppDatabase.getDatabase(this)
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val dao = database.clipboardDao()
+                val existing = dao.getAllItems().find { it.content == clean }
+                val type = ContentParser.detectType(clean)
+                val isSensitive = ContentParser.isSensitive(clean)
+
+                val entity = if (existing != null) {
+                    existing.copy(timestamp = System.currentTimeMillis())
+                } else {
+                    ClipboardItemEntity(
+                        id = java.util.UUID.randomUUID().toString(),
+                        content = clean,
+                        type = type.value,
+                        timestamp = System.currentTimeMillis(),
+                        isSensitive = isSensitive,
+                        isMasked = isSensitive,
+                        isJson = clean.startsWith("{") || clean.startsWith("[")
+                    )
+                }
+                dao.insertItem(entity)
+                
+                // Trim history
+                val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
+                val maxItems = prefs.getInt("max_history_items", 200)
+                dao.trimExcessItems(maxItems)
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to auto-save clipboard: ${e.localizedMessage}")
+            }
+        }
+    }
 
     private var shareService: LocalShareService? = null
     private var isServiceBound by mutableStateOf(false)
@@ -119,9 +171,15 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         isAppAllowedState.value = com.clipboardpro.share.service.LicenseService(this).isAppAllowed()
-        // We do NOT manually read and re-insert the clipboard on resume —
-        // the ClipboardManager listener in LocalShareService handles this automatically.
-        // Doing so here would cause duplicate entries and potential crashes.
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+        cm?.addPrimaryClipChangedListener(clipboardListener)
+        checkClipboardAndSave()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+        cm?.removePrimaryClipChangedListener(clipboardListener)
     }
 
     override fun onDestroy() {
