@@ -73,73 +73,85 @@ class LocalShareService : Service() {
         if (clean.isBlank()) return
         
         scope.launch(Dispatchers.IO) {
-            val dao = database.clipboardDao()
-            val existing = dao.getAllItems().find { it.content == clean }
-            val type = ContentParser.detectType(clean)
-            val isJsonStr = clean.startsWith("{") || clean.startsWith("[")
-            val isSensitive = ContentParser.isSensitive(clean)
-            
-            val entity = if (existing != null) {
-                existing.copy(
-                    timestamp = System.currentTimeMillis(),
-                    category = category ?: existing.category,
-                    title = title ?: existing.title,
-                    isSensitive = isSensitive
-                )
-            } else {
-                ClipboardItemEntity(
-                    id = java.util.UUID.randomUUID().toString(),
-                    content = clean,
-                    type = type.value,
-                    timestamp = System.currentTimeMillis(),
-                    category = category,
-                    title = title,
-                    isJson = isJsonStr,
-                    isSensitive = isSensitive,
-                    isMasked = isSensitive
-                )
+            try {
+                val dao = database.clipboardDao()
+                val existing = dao.getAllItems().find { it.content == clean }
+                val type = ContentParser.detectType(clean)
+                val isJsonStr = clean.startsWith("{") || clean.startsWith("[")
+                val isSensitive = ContentParser.isSensitive(clean)
+                
+                val entity = if (existing != null) {
+                    existing.copy(
+                        timestamp = System.currentTimeMillis(),
+                        category = category ?: existing.category,
+                        title = title ?: existing.title,
+                        isSensitive = isSensitive
+                    )
+                } else {
+                    ClipboardItemEntity(
+                        id = java.util.UUID.randomUUID().toString(),
+                        content = clean,
+                        type = type.value,
+                        timestamp = System.currentTimeMillis(),
+                        category = category,
+                        title = title,
+                        isJson = isJsonStr,
+                        isSensitive = isSensitive,
+                        isMasked = isSensitive
+                    )
+                }
+                dao.insertItem(entity)
+                
+                // Trim history according to user settings
+                val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
+                val maxItems = prefs.getInt("max_history_items", 200)
+                dao.trimExcessItems(maxItems)
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to add clipboard item: ${e.localizedMessage}", e)
             }
-            dao.insertItem(entity)
-            
-            // Trim history according to user settings
-            val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
-            val maxItems = prefs.getInt("max_history_items", 200)
-            dao.trimExcessItems(maxItems)
         }
     }
 
     fun removeClipboardItem(id: String) {
         scope.launch(Dispatchers.IO) {
-            val dao = database.clipboardDao()
-            val allItems = dao.getAllItems()
-            val item = allItems.find { it.id == id }
-            if (item != null) {
-                if (!item.imagePath.isNullOrBlank()) {
-                    try {
-                        val file = File(item.imagePath)
-                        if (file.exists()) file.delete()
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to delete image: ${e.localizedMessage}")
+            try {
+                val dao = database.clipboardDao()
+                val allItems = dao.getAllItems()
+                val item = allItems.find { it.id == id }
+                if (item != null) {
+                    if (!item.imagePath.isNullOrBlank()) {
+                        try {
+                            val file = File(item.imagePath)
+                            if (file.exists()) file.delete()
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to delete image: ${e.localizedMessage}")
+                        }
                     }
+                    dao.deleteItem(item)
                 }
-                dao.deleteItem(item)
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to remove clipboard item: ${e.localizedMessage}", e)
             }
         }
     }
 
     fun clearClipboardHistory() {
         scope.launch(Dispatchers.IO) {
-            val dao = database.clipboardDao()
-            val allItems = dao.getAllItems()
-            allItems.forEach { item ->
-                if (!item.imagePath.isNullOrBlank()) {
-                    try {
-                        val file = File(item.imagePath)
-                        if (file.exists()) file.delete()
-                    } catch (e: Exception) { }
+            try {
+                val dao = database.clipboardDao()
+                val allItems = dao.getAllItems()
+                allItems.forEach { item ->
+                    if (!item.imagePath.isNullOrBlank()) {
+                        try {
+                            val file = File(item.imagePath)
+                            if (file.exists()) file.delete()
+                        } catch (e: Exception) { }
+                    }
                 }
+                dao.clearAll()
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to clear clipboard history: ${e.localizedMessage}", e)
             }
-            dao.clearAll()
         }
     }
 

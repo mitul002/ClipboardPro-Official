@@ -227,9 +227,9 @@ fun SettingsScreen(
                 onClick = {
                     scope.launch(Dispatchers.IO) {
                         try {
-                            val dbFile = context.getDatabasePath("app_database")
-                            val dbWal = context.getDatabasePath("app_database-wal")
-                            val dbShm = context.getDatabasePath("app_database-shm")
+                            val dbFile = context.getDatabasePath("clipboardpro_database")
+                            val dbWal = context.getDatabasePath("clipboardpro_database-wal")
+                            val dbShm = context.getDatabasePath("clipboardpro_database-shm")
                             
                             val exportDir = File(
                                 android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
@@ -289,7 +289,7 @@ fun SettingsScreen(
                             }
                             tempFile.delete()
                             
-                            val dbBackup = File(tempDbDir, "app_database")
+                            val dbBackup = File(tempDbDir, "clipboardpro_database")
                             if (dbBackup.exists()) {
                                 tempBackupFile = dbBackup
                                 withContext(Dispatchers.Main) {
@@ -368,9 +368,9 @@ fun SettingsScreen(
                                         showRestoreDialog = false
                                         scope.launch(Dispatchers.IO) {
                                             try {
-                                                val currentDbFile = context.getDatabasePath("app_database")
-                                                val currentDbWal = context.getDatabasePath("app_database-wal")
-                                                val currentDbShm = context.getDatabasePath("app_database-shm")
+                                                val currentDbFile = context.getDatabasePath("clipboardpro_database")
+                                                val currentDbWal = context.getDatabasePath("clipboardpro_database-wal")
+                                                val currentDbShm = context.getDatabasePath("clipboardpro_database-shm")
                                                 
                                                 AppDatabase.getDatabase(context).close()
                                                 
@@ -380,11 +380,11 @@ fun SettingsScreen(
                                                 
                                                 file.copyTo(currentDbFile, overwrite = true)
                                                 
-                                                val backupWal = File(file.parentFile, "app_database-wal")
+                                                val backupWal = File(file.parentFile, "clipboardpro_database-wal")
                                                 if (backupWal.exists()) {
                                                     backupWal.copyTo(currentDbWal, overwrite = true)
                                                 }
-                                                val backupShm = File(file.parentFile, "app_database-shm")
+                                                val backupShm = File(file.parentFile, "clipboardpro_database-shm")
                                                 if (backupShm.exists()) {
                                                     backupShm.copyTo(currentDbShm, overwrite = true)
                                                 }

@@ -634,11 +634,18 @@ fun VaultCard(
             when (item.type) {
                 ClipboardItemType.COLOR.value -> {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        val parsedColor = remember(item.content) {
+                            try {
+                                Color(android.graphics.Color.parseColor(item.content))
+                            } catch (e: Exception) {
+                                Color.Gray
+                            }
+                        }
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(Color(android.graphics.Color.parseColor(item.content)))
+                                .background(parsedColor)
                                 .border(1.dp, Color.White, CircleShape)
                         )
                         Spacer(Modifier.width(10.dp))
@@ -656,7 +663,22 @@ fun VaultCard(
                         val file = remember(item.imagePath) { java.io.File(item.imagePath) }
                         if (file.exists()) {
                             val bitmap = remember(item.imagePath) {
-                                android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                                try {
+                                    val options = android.graphics.BitmapFactory.Options().apply {
+                                        inJustDecodeBounds = true
+                                    }
+                                    android.graphics.BitmapFactory.decodeFile(file.absolutePath, options)
+                                    var scale = 1
+                                    while (options.outWidth / scale / 2 >= 512 && options.outHeight / scale / 2 >= 512) {
+                                        scale *= 2
+                                    }
+                                    val decodeOptions = android.graphics.BitmapFactory.Options().apply {
+                                        inSampleSize = scale
+                                    }
+                                    android.graphics.BitmapFactory.decodeFile(file.absolutePath, decodeOptions)
+                                } catch (e: Throwable) {
+                                    null
+                                }
                             }
                             if (bitmap != null) {
                                 Column(modifier = Modifier.fillMaxWidth().height(160.dp)) {
