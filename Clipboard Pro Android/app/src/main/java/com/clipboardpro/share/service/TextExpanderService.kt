@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
-import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import com.clipboardpro.share.data.AppDatabase
 import com.clipboardpro.share.data.ClipboardItemEntity
 import com.clipboardpro.share.data.SnippetItemEntity
@@ -278,8 +277,12 @@ class TextExpanderService : AccessibilityService() {
                 node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selArgs)
                 return
             }
-            // Fallback: select-all then paste
-            node.performAction(AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_SELECT_ALL.id)
+            // Fallback: select-all (using set selection from 0 to length) then paste
+            val selAllArgs = Bundle().apply {
+                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 0)
+                putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, node.text?.length ?: 0)
+            }
+            node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, selAllArgs)
             lastSelfSetLabel = "ClipExpand"
             val prevClip = try { clipboardManager.primaryClip } catch (e: Exception) { null }
             clipboardManager.setPrimaryClip(ClipData.newPlainText("ClipExpand", text))
