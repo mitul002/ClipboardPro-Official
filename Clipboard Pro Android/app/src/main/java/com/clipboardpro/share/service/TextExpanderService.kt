@@ -91,27 +91,27 @@ class TextExpanderService : AccessibilityService() {
         // and can read the clipboard even in background (unlike regular background services).
         clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.addPrimaryClipChangedListener {
-            scope.launch {
-                try {
-                    val clip = clipboardManager.primaryClip ?: return@launch
-                    if (clip.itemCount == 0) return@launch
+            try {
+                val clip = clipboardManager.primaryClip ?: return@addPrimaryClipChangedListener
+                if (clip.itemCount == 0) return@addPrimaryClipChangedListener
 
-                    val label = clip.description?.label?.toString() ?: ""
+                val label = clip.description?.label?.toString() ?: ""
 
-                    // Ignore clips we set ourselves during expansion or sync
-                    if (label == "ClipboardPro Sync" ||
-                        label == "ClipExpand" ||
-                        label == lastSelfSetLabel) return@launch
+                // Ignore clips we set ourselves during expansion or sync
+                if (label == "ClipboardPro Sync" ||
+                    label == "ClipExpand" ||
+                    label == lastSelfSetLabel) return@addPrimaryClipChangedListener
 
-                    val text = clip.getItemAt(0)?.text?.toString() ?: return@launch
-                    if (text.isBlank()) return@launch
-                    if (text == lastSavedContent) return@launch // deduplicate
+                val text = clip.getItemAt(0)?.text?.toString() ?: return@addPrimaryClipChangedListener
+                if (text.isBlank()) return@addPrimaryClipChangedListener
+                if (text == lastSavedContent) return@addPrimaryClipChangedListener // deduplicate
 
-                    lastSavedContent = text
+                lastSavedContent = text
+                scope.launch {
                     saveClipboardItem(text)
-                } catch (e: Throwable) {
-                    Log.e(TAG, "Clipboard listener error: ${e.localizedMessage}")
                 }
+            } catch (e: Throwable) {
+                Log.e(TAG, "Clipboard listener error: ${e.localizedMessage}")
             }
         }
     }
@@ -157,8 +157,14 @@ class TextExpanderService : AccessibilityService() {
 
         val sourceNode = event.source ?: return
 
-        if (!sourceNode.isEditable &&
-            !sourceNode.className.toString().contains("Edit", ignoreCase = true)) {
+        val className = sourceNode.className?.toString() ?: ""
+        val isEditableNode = sourceNode.isEditable ||
+                sourceNode.isFocused ||
+                className.contains("Edit", ignoreCase = true) ||
+                className.contains("WebView", ignoreCase = true) ||
+                className.contains("webview", ignoreCase = true)
+
+        if (!isEditableNode) {
             sourceNode.recycle()
             return
         }
