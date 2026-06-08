@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.kpstv.core">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- For VibrateUtils -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- For Querying package list -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN"/>
+        </intent>
+    </queries>
+
+    <application>
+        <activity
+            android:name="com.kpstv.xclipper.ui.dialogs.FeatureDialog$DialogActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:noHistory="true"
+            android:theme="@style/TranslucentTheme.Dark" />
+    </application>
+</manifest>

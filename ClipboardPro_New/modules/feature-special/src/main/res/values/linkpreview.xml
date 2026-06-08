@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="LinkPreview">
+        <attr name="titleTextColor" format="color"/>
+        <attr name="subtitleTextColor" format="color"/>
+        <attr name="urlTextColor" format="color"/>
+        <attr name="imgSrc" format="reference"/>
+    </declare-styleable>
+
+    <dimen name="corner_radius">3dp</dimen>
+</resources>

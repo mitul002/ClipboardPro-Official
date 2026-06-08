@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="roundedBottomSheetPrimaryBackground">?background</color>
+    <color name="roundedBottomSheetPrimaryNavigationBarColor">#202124</color>
+
+    <color name="support">#FF5656</color>
+
+    <color name="android">#43A88C</color>
+
+
+
+
+</resources>

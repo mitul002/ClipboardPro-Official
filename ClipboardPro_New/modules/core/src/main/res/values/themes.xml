@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="AppTheme" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- A dark theme -->
+    <style name="AppTheme.Dark" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorPrimary</item>
+        <item name="background">@color/colorBackground</item>
+        <item name="fontFamily">@font/google_sans_medium</item>
+        <item name="colorTextPrimary">@color/colorTextPrimary</item>
+        <item name="colorTextSecondary">@color/colorTextSecondary</item>
+        <item name="colorTextSecondaryLight">@color/colorTextSecondaryLight</item>
+        <item name="colorTextError">@color/colorTextError</item>
+        <item name="colorForeground">@color/colorClickCard</item>
+        <item name="colorBackground">@color/colorCard</item>
+        <item name="colorSeparator">@color/colorSeparator</item>`
+        <item name="colorSelected">@color/colorSelected</item>
+        <item name="colorCurrentClip">@color/colorSelectedClip</item>
+        <item name="colorPinnedClip">@color/colorPinnedClip</item>
+        <item name="android:navigationBarColor">?background</item>
+    </style>
+
+    <!-- A lighter version of theme -->
+    <style name="AppTheme.Light" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorPrimary</item>
+        <item name="background">@color/colorBackground_Light</item>
+        <item name="fontFamily">@font/google_sans_medium</item>
+        <item name="colorTextPrimary">@color/colorTextPrimary_Light</item>
+        <item name="colorTextSecondary">@color/colorTextSecondary_Light</item>
+        <item name="colorTextSecondaryLight">@color/colorTextSecondaryLight_Light</item>
+        <item name="colorTextError">@color/colorTextError_Light</item>
+        <item name="colorForeground">@color/colorClickCard_Light</item>
+        <item name="colorBackground">@color/colorCard_Light</item>
+        <item name="colorSeparator">@color/colorSeparator_Light</item>
+        <item name="colorSelected">@color/colorSelected_Light</item>
+        <item name="colorCurrentClip">@color/colorSelectedClip_Light</item>
+        <item name="colorPinnedClip">@color/colorPinnedClip_Light</item>
+        <item name="android:navigationBarColor">?background</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
+    </style>
+
+    <!-- A dark dialog theme -->
+    <style name="CustomDialogStyle.Dark" parent="Theme.MaterialComponents.Dialog.Alert">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorTextPrimary">@color/colorTextPrimary</item>
+        <item name="colorTextSecondary">@color/colorTextSecondary</item>
+        <item name="colorTextSecondaryLight">@color/colorTextSecondaryLight</item>
+        <item name="colorTextError">@color/colorTextError</item>
+        <item name="colorForeground">@color/colorClickCard</item>
+        <item name="colorSeparator">@color/colorSeparator</item>
+        <item name="background">@color/colorBackground</item>
+        <item name="colorSelected">@color/colorSelected</item>
+        <item name="fontFamily">@font/google_sans_medium</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
+    <!-- A light dialog theme -->
+    <style name="CustomDialogStyle.Light" parent="Theme.MaterialComponents.Light.Dialog.Alert">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorTextPrimary">@color/colorTextPrimary_Light</item>
+        <item name="colorTextSecondary">@color/colorTextSecondary_Light</item>
+        <item name="colorTextSecondaryLight">@color/colorTextSecondaryLight_Light</item>
+        <item name="colorTextError">@color/colorTextError_Light</item>
+        <item name="colorForeground">@color/colorClickCard_Light</item>
+        <item name="colorSeparator">@color/colorSeparator_Light</item>
+        <item name="background">@color/colorBackground_Light</item>
+        <item name="colorSelected">@color/colorSelected_Light</item>
+        <item name="fontFamily">@font/google_sans_medium</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
+    <style name="TranslucentTheme.Dark" parent="AppTheme.Dark">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:activityOpenEnterAnimation">@null</item>
+        <item name="android:activityOpenExitAnimation">@null</item>
+        <item name="android:activityCloseEnterAnimation">@null</item>
+        <item name="android:activityCloseExitAnimation">@null</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="TranslucentTheme.Light" parent="AppTheme.Light">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:activityOpenEnterAnimation">@null</item>
+        <item name="android:activityOpenExitAnimation">@null</item>
+        <item name="android:activityCloseEnterAnimation">@null</item>
+        <item name="android:activityCloseExitAnimation">@null</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+</resources>

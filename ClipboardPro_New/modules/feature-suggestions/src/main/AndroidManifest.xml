@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.kpstv.xclipper.feature_suggestions">
+
+    <!-- Required to launch :BubbleService -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <application>
+        <service
+            android:name="com.kpstv.xclipper.service.BubbleService"
+            android:exported="false" />
+    </application>
+</manifest>

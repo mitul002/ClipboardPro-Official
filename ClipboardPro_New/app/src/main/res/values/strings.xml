@@ -1,0 +1,26 @@
+<resources>
+
+    <!-- Notifications -->
+    <string name="more_actions">Special actions</string>
+    <string name="clip_content">Clipboard content</string>
+
+    <!-- Review Helper -->
+    <string name="review">Review</string>
+    <string name="rate_title">Enjoying the app?</string>
+    <string name="rate_text">Kindly review the app on Google play which will help us reach more audience.</string>
+
+    <!-- DB Connection Provider -->
+    <string name="db_provider_enable_bind_setting">Enable &amp; apply \"Database binding\" from the desktop application.</string>
+
+    <!-- Disclosure/Agreement -->
+    <string name="terms_decline">Decline</string>
+    <string name="terms_agree">Accept</string>
+    <string name="terms_check_privacy_policy"><![CDATA[I agree with the <b>Privacy Policy</b>]]></string>
+    <string name="terms_title">Disclosure Agreement</string>
+    <string name="terms_last_updated">Updated: %1$s</string>
+    <string name="terms_check_agreement"><![CDATA[I agree with the <b>Agreement</b>]]></string>
+    <string name="err_privacy_policy">Couldn\'t fetch latest privacy policy</string>
+
+    <!-- General -->
+    <string name="err_notification_permission">Notification permission denied, enable it from settings</string>
+</resources>

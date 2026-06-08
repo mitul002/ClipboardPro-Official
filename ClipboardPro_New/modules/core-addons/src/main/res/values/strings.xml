@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- AddOn: Pin Lock -->
+    <string name="pin_title">Pin Lock</string>
+    <string name="pin_short_desc">Pin &amp; Biometric app lock support</string>
+    <string name="pin_full_desc">App lock support providing unlocking with pin or fingerprint. You should not use any 3rd party app lockers as they cause the app to malfunction.\n\nEnable: Settings > General > Pin Lock (Biometric).</string>
+    <string name="pin_sku">extension_pin_lock</string>
+
+    <!-- AddOn: Customize Theme -->
+    <string name="ct_title">Customize</string>
+    <string name="ct_short_desc">Change theme colors &amp; app icon</string>
+    <string name="ct_full_desc">Ability to customize theme colors like primary &amp; accent that appears on toolbar, buttons, notification, etc. along with app launcher icon.\n\nEnable: Settings > Look &amp; Feel.</string>
+    <string name="ct_sku">extension_customize_theme</string>
+
+    <!-- AddOn: Auto Delete -->
+    <string name="ad_title">Auto Delete</string>
+    <string name="ad_short_desc">Delete clips created after x days</string>
+    <string name="ad_full_desc">Automatically delete clips which are created x days ago.\n\nEnable: Settings > General > Auto Delete clips.</string>
+    <string name="ad_sku">extension_auto_delete</string>
+
+    <string name="extension_title">Add-on Extension</string>
+    <string name="extension_message">This is an add-on extension that unlocks certain capabilities of the app which requires a small purchase to unlock.</string>
+
+    <!-- Billing client error -->
+    <string name="err_billing_not_ready">Billing client not ready, Try again</string>
+    <string name="err_billing_disconnect">Billing service disconnected</string>
+    <string name="err_billing_unfinished">Error: %1$s</string>
+    <string name="err_purchase_failed">Purchase failed</string>
+    <string name="err_purchase_no_item">Could not find the In-App item</string>
+    <string name="err_billing_unknown">Unknown error</string>
+</resources>
