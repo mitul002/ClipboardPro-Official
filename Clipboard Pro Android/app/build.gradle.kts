@@ -82,6 +82,7 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("androidx.lifecycle:lifecycle-service:2.7.0")
+    implementation("androidx.appcompat:appcompat:1.7.0")
 
     // Room Database
     val roomVersion = "2.6.1"
