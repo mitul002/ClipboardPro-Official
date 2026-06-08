@@ -19,6 +19,9 @@ import com.clipboardpro.share.service.ClipboardCaptureActivity
 import com.clipboardpro.share.service.LocalShareService
 import com.clipboardpro.share.ui.theme.ClipboardProTheme
 import com.clipboardpro.share.ui.MainScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
