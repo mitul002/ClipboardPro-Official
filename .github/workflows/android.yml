@@ -21,20 +21,20 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: gradle
-        cache-dependency-path: 'Clipboard Pro Android/gradle/wrapper/gradle-wrapper.properties'
+        cache-dependency-path: 'ClipboardPro_XClipper/gradle/wrapper/gradle-wrapper.properties'
 
     - name: Grant execution permission for gradlew
-      run: chmod +x "Clipboard Pro Android/gradlew"
+      run: chmod +x "ClipboardPro_XClipper/gradlew"
 
     - name: Build Debug APK
       run: ./gradlew assembleDebug
-      working-directory: "Clipboard Pro Android"
+      working-directory: "ClipboardPro_XClipper"
 
     - name: Rename APK to ClipboardPro.apk
-      run: mv "Clipboard Pro Android/app/build/outputs/apk/debug/app-debug.apk" "Clipboard Pro Android/app/build/outputs/apk/debug/ClipboardPro.apk"
+      run: mv "ClipboardPro_XClipper/app/build/outputs/apk/debug/app-debug.apk" "ClipboardPro_XClipper/app/build/outputs/apk/debug/ClipboardPro.apk"
 
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
         name: ClipboardPro
-        path: Clipboard Pro Android/app/build/outputs/apk/debug/ClipboardPro.apk
+        path: ClipboardPro_XClipper/app/build/outputs/apk/debug/ClipboardPro.apk
