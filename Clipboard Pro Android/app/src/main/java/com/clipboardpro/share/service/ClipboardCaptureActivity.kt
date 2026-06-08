@@ -38,7 +38,7 @@ class ClipboardCaptureActivity : ComponentActivity() {
         readAndSaveClipboard()
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         // If already running, treat a new launch as another copy event.
         readAndSaveClipboard()

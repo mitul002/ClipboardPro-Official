@@ -268,7 +268,9 @@ class TextExpanderService : AccessibilityService() {
         }
     }
 
-    override fun onInterrupt() = Log.w(TAG, "Accessibility Service Interrupted.")
+    override fun onInterrupt() {
+        Log.w(TAG, "Accessibility Service Interrupted.")
+    }
 
     override fun onDestroy() {
         job.cancel()
