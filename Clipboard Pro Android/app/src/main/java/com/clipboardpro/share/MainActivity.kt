@@ -14,71 +14,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
+import com.clipboardpro.share.service.ClipboardCaptureActivity
 import com.clipboardpro.share.service.LocalShareService
 import com.clipboardpro.share.ui.theme.ClipboardProTheme
 import com.clipboardpro.share.ui.MainScreen
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import com.clipboardpro.share.data.AppDatabase
-import com.clipboardpro.share.data.ClipboardItemEntity
-import com.clipboardpro.share.service.ContentParser
-import com.clipboardpro.share.model.ClipboardItemType
 
 class MainActivity : ComponentActivity() {
-
-    private val clipboardListener = android.content.ClipboardManager.OnPrimaryClipChangedListener {
-        checkClipboardAndSave()
-    }
-
-    private fun checkClipboardAndSave() {
-        try {
-            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return
-            val clip = cm.primaryClip ?: return
-            if (clip.itemCount == 0) return
-            
-            val label = clip.description?.label?.toString() ?: ""
-            if (label == "ClipboardPro Sync" || label == "ClipExpand") return
-            
-            val text = clip.getItemAt(0)?.text?.toString() ?: return
-            val clean = text.trim()
-            if (clean.isBlank()) return
-            
-            val database = AppDatabase.getDatabase(this@MainActivity)
-            kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val dao = database.clipboardDao()
-                val existing = dao.getAllItems().find { it.content == clean }
-                val type = ContentParser.detectType(clean)
-                val isSensitive = ContentParser.isSensitive(clean)
-
-                val entity = if (existing != null) {
-                    existing.copy(timestamp = System.currentTimeMillis())
-                } else {
-                    ClipboardItemEntity(
-                        id = java.util.UUID.randomUUID().toString(),
-                        content = clean,
-                        type = type.value,
-                        timestamp = System.currentTimeMillis(),
-                        isSensitive = isSensitive,
-                        isMasked = isSensitive,
-                        isJson = clean.startsWith("{") || clean.startsWith("[")
-                    )
-                }
-                dao.insertItem(entity)
-                
-                // Trim history
-                val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
-                val maxItems = prefs.getInt("max_history_items", 200)
-                dao.trimExcessItems(maxItems)
-            } catch (e: Exception) {
-                android.util.Log.e("MainActivity", "Failed to auto-save clipboard: ${e.localizedMessage}")
-            }
-        }
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Error in checkClipboardAndSave: ${e.localizedMessage}")
-        }
-    }
 
     private var shareService: LocalShareService? = null
     private var isServiceBound by mutableStateOf(false)
@@ -138,6 +79,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * When the app is opened by the user (comes to foreground), also capture
+     * the current clipboard. This is the fallback path for when the user
+     * copied something while the app was closed and then opens the app manually.
+     *
+     * The actual "real-time" copy detection is handled by the AccessibilityService
+     * (TextExpanderService) → ClipboardCaptureActivity pipeline.
+     */
+    override fun onResume() {
+        super.onResume()
+        isAppAllowedState.value = com.clipboardpro.share.service.LicenseService(this).isAppAllowed()
+        // Capture whatever is currently on the clipboard when user opens the app.
+        // ClipboardCaptureActivity handles deduplication and DB insertion safely.
+        ClipboardCaptureActivity.launch(this)
+    }
+
     private fun requestRequiredPermissions() {
         val needed = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -173,35 +130,6 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
         if (prefs.getBoolean("floating_yoink_enabled", false) && android.provider.Settings.canDrawOverlays(this)) {
             startService(Intent(this, com.clipboardpro.share.service.FloatingYoinkService::class.java))
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        isAppAllowedState.value = com.clipboardpro.share.service.LicenseService(this).isAppAllowed()
-        try {
-            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-            cm?.addPrimaryClipChangedListener(clipboardListener)
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Failed to add clip listener: ${e.localizedMessage}")
-        }
-        checkClipboardAndSave()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        try {
-            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-            cm?.removePrimaryClipChangedListener(clipboardListener)
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Failed to remove clip listener: ${e.localizedMessage}")
-        }
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            checkClipboardAndSave()
         }
     }
 

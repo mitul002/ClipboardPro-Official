@@ -41,6 +41,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Transparent clipboard-capture trampoline (XClipper pattern) -->
+        <activity
+            android:name=".service.ClipboardCaptureActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.NoDisplay"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:launchMode="singleTask" />
+
         <service
             android:name=".service.LocalShareService"
             android:exported="false"
