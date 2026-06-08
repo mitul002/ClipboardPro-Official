@@ -85,7 +85,11 @@ class TransferReceiver(
                 val jsonStr = String(jsonBytes, Charsets.UTF_8)
                 Log.d(TAG, "Received JSON: $jsonStr")
 
-                val item = gson.fromJson(jsonStr, ClipboardItemPayload::class.java) ?: return
+                val item = gson.fromJson(jsonStr, ClipboardItemPayload::class.java)
+                if (item == null) {
+                    Log.e(TAG, "Failed to parse JSON payload")
+                    return
+                }
 
                 // 3. Handle TEXT items
                 if (item.Type == ClipboardItemType.TEXT.value ||
@@ -94,8 +98,21 @@ class TransferReceiver(
                     item.Type == ClipboardItemType.PHONE.value ||
                     item.Type == ClipboardItemType.CODE.value ||
                     item.Type == ClipboardItemType.COLOR.value) {
-                    Log.i(TAG, "Text received from $peerIp: ${item.Content.take(100)}")
-                    onTextReceived(item.Content, peerIp)
+                    
+                    val content = item.Content ?: ""
+                    Log.i(TAG, "Text received from $peerIp: ${content.take(100)}")
+                    
+                    // Trigger update so it shows in transfers tab as well
+                    val transfer = TransferItem(
+                        fileName = if (content.length > 30) content.take(30) + "..." else content,
+                        direction = TransferDirection.RECEIVE,
+                        totalBytes = 0,
+                        status = TransferStatus.COMPLETED,
+                        peerName = peerIp
+                    )
+                    onTransferUpdate(transfer)
+                    
+                    onTextReceived(content, peerIp)
                     return
                 }
 

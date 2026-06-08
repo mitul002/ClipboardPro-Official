@@ -74,12 +74,13 @@ class LocalShareService : Service() {
         scope.launch(Dispatchers.IO) {
             try {
                 val dao = database.clipboardDao()
-                val existing = dao.getAllItems().find { it.content == clean }
+                val existing = dao.getItemByContent(clean)
                 val type = ContentParser.detectType(clean)
                 val isJsonStr = clean.startsWith("{") || clean.startsWith("[")
                 val isSensitive = ContentParser.isSensitive(clean)
                 
                 val entity = if (existing != null) {
+                    Log.d(TAG, "Item already exists, updating timestamp/category. Old category: ${existing.category}, New: $category")
                     existing.copy(
                         timestamp = System.currentTimeMillis(),
                         category = category ?: existing.category,
@@ -87,6 +88,7 @@ class LocalShareService : Service() {
                         isSensitive = isSensitive
                     )
                 } else {
+                    Log.d(TAG, "Adding new clipboard item. Type: ${type.name}, Category: $category")
                     ClipboardItemEntity(
                         id = java.util.UUID.randomUUID().toString(),
                         content = clean,
@@ -105,7 +107,7 @@ class LocalShareService : Service() {
                 val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
                 val maxItems = prefs.getInt("max_history_items", 200)
                 dao.trimExcessItems(maxItems)
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 Log.e(TAG, "Failed to add clipboard item: ${e.localizedMessage}", e)
             }
         }
@@ -243,34 +245,31 @@ class LocalShareService : Service() {
             context = this,
             onTransferUpdate = { item -> updateTransfer(item) },
             onTextReceived = { text, from ->
-                scope.launch(Dispatchers.IO) {
-                    val resolvedName = _peers.value.find { it.ip == from }?.name ?: from
+                val resolvedName = _peers.value.find { it.ip == from }?.name ?: from
+                Log.i(TAG, "onTextReceived: From $resolvedName ($from), Content: ${text.take(20)}...")
 
-                    val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
-                    val autoClip = prefs.getBoolean("auto_clipboard", true)
-                    if (autoClip) {
-                        // Set clipboard on Main thread — required by Android
-                        android.os.Handler(android.os.Looper.getMainLooper()).post {
-                            try {
-                                val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                cm.setPrimaryClip(ClipData.newPlainText("ClipboardPro Sync", text))
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Failed to set clipboard: ${e.localizedMessage}")
-                            }
+                val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
+                val autoClip = prefs.getBoolean("auto_clipboard", true)
+                if (autoClip) {
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        try {
+                            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            cm.setPrimaryClip(ClipData.newPlainText("ClipboardPro Sync", text))
+                            Log.d(TAG, "System clipboard updated automatically.")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to set clipboard: ${e.localizedMessage}")
                         }
                     }
-
-                    // Save directly to Room — the TextExpanderService clipboard listener will
-                    // ignore this since the label is "ClipboardPro Sync"
-                    addClipboardItem(
-                        text = text,
-                        category = "Received",
-                        title = "From $resolvedName"
-                    )
-
-                    updateNotification("Text received from $resolvedName")
-                    Log.i(TAG, "Text from $resolvedName: ${text.take(50)}")
                 }
+
+                // Save directly to Room
+                addClipboardItem(
+                    text = text,
+                    category = "Received",
+                    title = "From $resolvedName"
+                )
+
+                updateNotification("Text received from $resolvedName")
             }
         )
         tcpPort = transferReceiver!!.start()

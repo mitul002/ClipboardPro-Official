@@ -88,73 +88,93 @@ class ClipboardCaptureActivity : ComponentActivity() {
     }
 
     private fun captureAndFinish() {
-        // Read clipboard synchronously on the Main thread (we're already in focus).
-        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-        val clip = cm?.primaryClip
-
-        if (clip == null || clip.itemCount == 0) {
-            finish()
-            return
-        }
-
-        val label = clip.description?.label?.toString() ?: ""
-        if (label in IGNORED_LABELS) {
-            finish()
-            return
-        }
-
-        val text = clip.getItemAt(0)?.text?.toString()?.trim() ?: run {
-            finish()
-            return
-        }
-
-        if (text.isBlank()) {
-            finish()
-            return
-        }
-
-        // Finish the activity immediately — the DB write runs in background.
-        finish()
-
-        // Persist to Room on IO thread.
-        scope.launch {
-            try {
-                val db = AppDatabase.getDatabase(applicationContext)
-                val dao = db.clipboardDao()
-
-                // Deduplicate — bump timestamp if already stored.
-                val existing = dao.getAllItems().find { it.content == text }
-                if (existing != null) {
-                    dao.insertItem(existing.copy(timestamp = System.currentTimeMillis()))
-                    Log.d(TAG, "Bumped timestamp for existing clip.")
-                    return@launch
-                }
-
-                val type = ContentParser.detectType(text)
-                val isSensitive = ContentParser.isSensitive(text)
-
-                val entity = ClipboardItemEntity(
-                    id = java.util.UUID.randomUUID().toString(),
-                    content = text,
-                    type = type.value,
-                    timestamp = System.currentTimeMillis(),
-                    isSensitive = isSensitive,
-                    isMasked = isSensitive,
-                    isJson = text.startsWith("{") || text.startsWith("[")
-                )
-                dao.insertItem(entity)
-
-                // Trim history to user-configured limit.
-                val prefs = applicationContext.getSharedPreferences(
-                    "localshare_prefs", Context.MODE_PRIVATE
-                )
-                val maxItems = prefs.getInt("max_history_items", 200)
-                dao.trimExcessItems(maxItems)
-
-                Log.d(TAG, "Saved clip [${type.name}]: ${text.take(40)}")
-            } catch (e: Exception) {
-                Log.e(TAG, "DB error saving clip: ${e.localizedMessage}")
+        try {
+            // Read clipboard synchronously on the Main thread (we're already in focus).
+            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+            if (cm == null) {
+                Log.e(TAG, "ClipboardManager not available")
+                finish()
+                return
             }
+
+            val clip = try { cm.primaryClip } catch (e: Exception) { 
+                Log.e(TAG, "Failed to get primary clip: ${e.localizedMessage}")
+                null 
+            }
+
+            if (clip == null || clip.itemCount == 0) {
+                Log.d(TAG, "Clip is empty, finishing.")
+                finish()
+                return
+            }
+
+            val description = clip.description
+            val label = description?.label?.toString() ?: ""
+            
+            if (label in IGNORED_LABELS) {
+                Log.d(TAG, "Ignoring clip with label: $label")
+                finish()
+                return
+            }
+
+            val item = clip.getItemAt(0)
+            val text = item?.text?.toString()?.trim() ?: run {
+                Log.d(TAG, "Clip item 0 has no text, finishing.")
+                finish()
+                return
+            }
+
+            if (text.isBlank()) {
+                finish()
+                return
+            }
+
+            // Persist to Room on IO thread.
+            // Using applicationContext and a global scope (or service scope) 
+            // is safer for background persistence.
+            scope.launch {
+                try {
+                    val db = AppDatabase.getDatabase(applicationContext)
+                    val dao = db.clipboardDao()
+
+                    // Deduplicate — bump timestamp if already stored.
+                    val existing = dao.getItemByContent(text)
+                    if (existing != null) {
+                        dao.insertItem(existing.copy(timestamp = System.currentTimeMillis()))
+                        Log.d(TAG, "Bumped timestamp for existing clip.")
+                    } else {
+                        val type = ContentParser.detectType(text)
+                        val isSensitive = ContentParser.isSensitive(text)
+
+                        val entity = ClipboardItemEntity(
+                            id = java.util.UUID.randomUUID().toString(),
+                            content = text,
+                            type = type.value,
+                            timestamp = System.currentTimeMillis(),
+                            isSensitive = isSensitive,
+                            isMasked = isSensitive,
+                            isJson = text.startsWith("{") || text.startsWith("[")
+                        )
+                        dao.insertItem(entity)
+
+                        // Trim history to user-configured limit.
+                        val prefs = applicationContext.getSharedPreferences(
+                            "localshare_prefs", Context.MODE_PRIVATE
+                        )
+                        val maxItems = prefs.getInt("max_history_items", 200)
+                        dao.trimExcessItems(maxItems)
+
+                        Log.d(TAG, "Saved clip [${type.name}]: ${text.take(40)}")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "DB error saving clip: ${e.localizedMessage}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Critical error in captureAndFinish: ${e.localizedMessage}")
+        } finally {
+            // Always finish the activity
+            finish()
         }
     }
 }

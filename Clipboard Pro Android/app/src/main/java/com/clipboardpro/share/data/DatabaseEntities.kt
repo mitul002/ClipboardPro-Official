@@ -123,6 +123,9 @@ interface ClipboardDao {
     @Query("SELECT * FROM ClipboardItems WHERE ImageHash = :hash LIMIT 1")
     suspend fun getItemByHash(hash: String): ClipboardItemEntity?
 
+    @Query("SELECT * FROM ClipboardItems WHERE Content = :content LIMIT 1")
+    suspend fun getItemByContent(content: String): ClipboardItemEntity?
+
     @Query("DELETE FROM ClipboardItems WHERE IsPinned = 0 AND Id NOT IN (SELECT Id FROM ClipboardItems ORDER BY Timestamp DESC LIMIT :maxItems)")
     suspend fun trimExcessItems(maxItems: Int)
 }
