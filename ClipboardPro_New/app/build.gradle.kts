@@ -77,7 +77,7 @@ tasks.register("checkForChangelog") {
 }
 
 dependencies {
-    for (moduleId in ModuleDependency.getAllModules().filterNot { it == ModuleDependency.APP })
+    for (moduleId in ModuleDependency.getAllModules().filterNot { it == ModuleDependency.APP || it == ModuleDependency.CORE_PRIVATE })
         api(project(moduleId))
     implementation(LibraryDependency.APP_COMPAT)
     implementation(LibraryDependency.ACTIVITY_KTX)
