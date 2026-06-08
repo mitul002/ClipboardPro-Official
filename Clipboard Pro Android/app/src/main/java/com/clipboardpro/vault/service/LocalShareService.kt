@@ -1,4 +1,4 @@
-package com.clipboardpro.share.service
+package com.clipboardpro.vault.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -15,16 +15,16 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.clipboardpro.share.MainActivity
-import com.clipboardpro.share.R
-import com.clipboardpro.share.data.AppDatabase
-import com.clipboardpro.share.data.ClipboardItemEntity
-import com.clipboardpro.share.model.ClipboardItemType
-import com.clipboardpro.share.model.PeerDevice
-import com.clipboardpro.share.model.TransferItem
-import com.clipboardpro.share.network.DiscoveryManager
-import com.clipboardpro.share.network.TransferReceiver
-import com.clipboardpro.share.network.TransferSender
+import com.clipboardpro.vault.MainActivity
+import com.clipboardpro.vault.R
+import com.clipboardpro.vault.data.AppDatabase
+import com.clipboardpro.vault.data.ClipboardItemEntity
+import com.clipboardpro.vault.model.ClipboardItemType
+import com.clipboardpro.vault.model.PeerDevice
+import com.clipboardpro.vault.model.TransferItem
+import com.clipboardpro.vault.network.DiscoveryManager
+import com.clipboardpro.vault.network.TransferReceiver
+import com.clipboardpro.vault.network.TransferSender
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

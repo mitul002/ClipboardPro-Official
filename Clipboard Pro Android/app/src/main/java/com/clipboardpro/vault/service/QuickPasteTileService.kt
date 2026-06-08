@@ -1,4 +1,4 @@
-package com.clipboardpro.share.service
+package com.clipboardpro.vault.service
 
 import android.app.Dialog
 import android.content.ClipData
@@ -18,7 +18,7 @@ import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
-import com.clipboardpro.share.data.AppDatabase
+import com.clipboardpro.vault.data.AppDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

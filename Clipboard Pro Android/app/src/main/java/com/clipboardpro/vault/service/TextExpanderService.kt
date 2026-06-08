@@ -1,4 +1,4 @@
-package com.clipboardpro.share.service
+package com.clipboardpro.vault.service
 
 import android.accessibilityservice.AccessibilityService
 import android.content.ClipData
@@ -8,8 +8,8 @@ import android.os.Bundle
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
-import com.clipboardpro.share.data.AppDatabase
-import com.clipboardpro.share.data.SnippetItemEntity
+import com.clipboardpro.vault.data.AppDatabase
+import com.clipboardpro.vault.data.SnippetItemEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,7 +22,7 @@ class TextExpanderService : AccessibilityService() {
         private const val TAG = "TextExpanderService"
 
         /** Broadcast action (kept for legacy compatibility) */
-        const val ACTION_CLIP_SAVED = "com.clipboardpro.share.CLIP_SAVED"
+        const val ACTION_CLIP_SAVED = "com.clipboardpro.vault.CLIP_SAVED"
 
         val ALLOWED_DELIMITERS = setOf(
             ';', '.', '/', '!', '@', '#', ':', ',', '?', '*', '-', '_', '+', '=', '~'

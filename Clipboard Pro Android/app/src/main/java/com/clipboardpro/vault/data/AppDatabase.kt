@@ -1,4 +1,4 @@
-package com.clipboardpro.share.data
+package com.clipboardpro.vault.data
 
 import android.content.Context
 import androidx.room.Database

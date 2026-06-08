@@ -1,7 +1,7 @@
-package com.clipboardpro.share.network
+package com.clipboardpro.vault.network
 
 import android.util.Log
-import com.clipboardpro.share.model.PeerDevice
+import com.clipboardpro.vault.model.PeerDevice
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress

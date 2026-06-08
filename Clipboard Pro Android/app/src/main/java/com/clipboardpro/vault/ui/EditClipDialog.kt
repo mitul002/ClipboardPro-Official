@@ -1,4 +1,4 @@
-package com.clipboardpro.share.ui
+package com.clipboardpro.vault.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -20,9 +20,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.clipboardpro.share.data.ClipboardItemEntity
-import com.clipboardpro.share.model.ClipboardItemType
-import com.clipboardpro.share.ui.theme.*
+import com.clipboardpro.vault.data.ClipboardItemEntity
+import com.clipboardpro.vault.model.ClipboardItemType
+import com.clipboardpro.vault.ui.theme.*
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)

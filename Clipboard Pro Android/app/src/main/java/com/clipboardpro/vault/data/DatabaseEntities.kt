@@ -1,4 +1,4 @@
-package com.clipboardpro.share.data
+package com.clipboardpro.vault.data
 
 import androidx.room.ColumnInfo
 import androidx.room.Dao

@@ -1,4 +1,4 @@
-package com.clipboardpro.share.ui
+package com.clipboardpro.vault.ui
 
 import android.content.Context
 import android.widget.Toast
@@ -25,9 +25,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.clipboardpro.share.service.LicenseService
-import com.clipboardpro.share.service.TrialService
-import com.clipboardpro.share.ui.theme.*
+import com.clipboardpro.vault.service.LicenseService
+import com.clipboardpro.vault.service.TrialService
+import com.clipboardpro.vault.ui.theme.*
 import kotlinx.coroutines.launch
 
 @Composable

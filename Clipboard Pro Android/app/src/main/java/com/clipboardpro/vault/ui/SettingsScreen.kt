@@ -1,4 +1,4 @@
-package com.clipboardpro.share.ui
+package com.clipboardpro.vault.ui
 
 import android.content.Context
 import android.content.Intent
@@ -27,10 +27,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.clipboardpro.share.data.AppDatabase
-import com.clipboardpro.share.service.LicenseService
-import com.clipboardpro.share.service.TrialService
-import com.clipboardpro.share.ui.theme.*
+import com.clipboardpro.vault.data.AppDatabase
+import com.clipboardpro.vault.service.LicenseService
+import com.clipboardpro.vault.service.TrialService
+import com.clipboardpro.vault.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -151,7 +151,7 @@ fun SettingsScreen(
                         yoinkEnabled = checked
                         getPrefs(context).edit().putBoolean("floating_yoink_enabled", checked).apply()
                         
-                        val intent = Intent(context, com.clipboardpro.share.service.FloatingYoinkService::class.java)
+                        val intent = Intent(context, com.clipboardpro.vault.service.FloatingYoinkService::class.java)
                         if (checked) {
                             context.startService(intent)
                         } else {
@@ -461,7 +461,7 @@ fun SettingsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         androidx.compose.foundation.Image(
-                            painter = androidx.compose.ui.res.painterResource(id = com.clipboardpro.share.R.drawable.logo),
+                            painter = androidx.compose.ui.res.painterResource(id = com.clipboardpro.vault.R.drawable.logo),
                             contentDescription = "App Logo",
                             modifier = Modifier.size(44.dp)
                         )

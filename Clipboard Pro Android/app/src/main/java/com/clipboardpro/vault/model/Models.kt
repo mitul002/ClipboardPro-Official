@@ -1,4 +1,4 @@
-package com.clipboardpro.share.model
+package com.clipboardpro.vault.model
 
 data class PeerDevice(
     val name: String,

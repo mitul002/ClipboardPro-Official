@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.clipboardpro.share"
+    namespace = "com.clipboardpro.vault"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.clipboardpro.share"
+        applicationId = "com.clipboardpro.vault"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

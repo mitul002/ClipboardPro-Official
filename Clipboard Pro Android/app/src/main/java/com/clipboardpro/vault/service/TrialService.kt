@@ -1,4 +1,4 @@
-package com.clipboardpro.share.service
+package com.clipboardpro.vault.service
 
 import android.content.Context
 import android.util.Base64

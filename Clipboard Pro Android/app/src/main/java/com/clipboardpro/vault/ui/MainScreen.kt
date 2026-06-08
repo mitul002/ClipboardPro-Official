@@ -1,4 +1,4 @@
-package com.clipboardpro.share.ui
+package com.clipboardpro.vault.ui
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -42,17 +42,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
-import com.clipboardpro.share.R
-import com.clipboardpro.share.data.AppDatabase
-import com.clipboardpro.share.data.ClipboardItemEntity
-import com.clipboardpro.share.data.SnippetItemEntity
-import com.clipboardpro.share.model.ClipboardItemType
-import com.clipboardpro.share.model.PeerDevice
-import com.clipboardpro.share.model.TransferDirection
-import com.clipboardpro.share.model.TransferItem
-import com.clipboardpro.share.model.TransferStatus
-import com.clipboardpro.share.service.LocalShareService
-import com.clipboardpro.share.ui.theme.*
+import com.clipboardpro.vault.R
+import com.clipboardpro.vault.data.AppDatabase
+import com.clipboardpro.vault.data.ClipboardItemEntity
+import com.clipboardpro.vault.data.SnippetItemEntity
+import com.clipboardpro.vault.model.ClipboardItemType
+import com.clipboardpro.vault.model.PeerDevice
+import com.clipboardpro.vault.model.TransferDirection
+import com.clipboardpro.vault.model.TransferItem
+import com.clipboardpro.vault.model.TransferStatus
+import com.clipboardpro.vault.service.LocalShareService
+import com.clipboardpro.vault.ui.theme.*
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
@@ -1138,7 +1138,7 @@ fun AddSnippetDialog(
                     val t = trigger.trim()
                     when {
                         t.isBlank() -> triggerError = "Please enter a trigger."
-                        !com.clipboardpro.share.service.TextExpanderService.hasValidDelimiter(t) ->
+                        !com.clipboardpro.vault.service.TextExpanderService.hasValidDelimiter(t) ->
                             triggerError = "Must start or end with a symbol: $delimiterHint"
                         content.isBlank() -> { /* handled by disabled state */ }
                         else -> onSave(t, content, desc)
@@ -1242,7 +1242,7 @@ fun EditSnippetDialog(
                     val t = trigger.trim()
                     when {
                         t.isBlank() -> triggerError = "Please enter a trigger."
-                        !com.clipboardpro.share.service.TextExpanderService.hasValidDelimiter(t) ->
+                        !com.clipboardpro.vault.service.TextExpanderService.hasValidDelimiter(t) ->
                             triggerError = "Must start or end with a symbol: $delimiterHint"
                         content.isBlank() -> { /* handled by disabled state */ }
                         else -> onSave(t, content, desc)

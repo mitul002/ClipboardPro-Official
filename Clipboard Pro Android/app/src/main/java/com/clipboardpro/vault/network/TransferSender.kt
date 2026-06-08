@@ -1,12 +1,12 @@
-package com.clipboardpro.share.network
+package com.clipboardpro.vault.network
 
 import android.util.Log
-import com.clipboardpro.share.model.ClipboardItemPayload
-import com.clipboardpro.share.model.ClipboardItemType
-import com.clipboardpro.share.model.PeerDevice
-import com.clipboardpro.share.model.TransferDirection
-import com.clipboardpro.share.model.TransferItem
-import com.clipboardpro.share.model.TransferStatus
+import com.clipboardpro.vault.model.ClipboardItemPayload
+import com.clipboardpro.vault.model.ClipboardItemType
+import com.clipboardpro.vault.model.PeerDevice
+import com.clipboardpro.vault.model.TransferDirection
+import com.clipboardpro.vault.model.TransferItem
+import com.clipboardpro.vault.model.TransferStatus
 import com.google.gson.Gson
 import java.io.BufferedOutputStream
 import java.io.DataOutputStream

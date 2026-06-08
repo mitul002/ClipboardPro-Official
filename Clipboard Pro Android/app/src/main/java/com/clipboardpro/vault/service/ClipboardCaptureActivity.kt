@@ -1,12 +1,12 @@
-package com.clipboardpro.share.service
+package com.clipboardpro.vault.service
 
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
-import com.clipboardpro.share.data.AppDatabase
-import com.clipboardpro.share.data.ClipboardItemEntity
+import com.clipboardpro.vault.data.AppDatabase
+import com.clipboardpro.vault.data.ClipboardItemEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

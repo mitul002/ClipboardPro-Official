@@ -1,4 +1,4 @@
-package com.clipboardpro.share.service
+package com.clipboardpro.vault.service
 
 import android.annotation.SuppressLint
 import android.app.Service
@@ -65,7 +65,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
-import com.clipboardpro.share.data.AppDatabase
+import com.clipboardpro.vault.data.AppDatabase
 
 class FloatingYoinkService : Service(), LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
 

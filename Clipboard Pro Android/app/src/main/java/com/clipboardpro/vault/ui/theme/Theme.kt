@@ -1,4 +1,4 @@
-package com.clipboardpro.share.ui.theme
+package com.clipboardpro.vault.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

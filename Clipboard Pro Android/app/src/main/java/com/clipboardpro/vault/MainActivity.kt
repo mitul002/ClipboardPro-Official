@@ -1,4 +1,4 @@
-package com.clipboardpro.share
+package com.clipboardpro.vault
 
 import android.Manifest
 import android.content.ComponentName
@@ -14,10 +14,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
-import com.clipboardpro.share.service.ClipboardCaptureActivity
-import com.clipboardpro.share.service.LocalShareService
-import com.clipboardpro.share.ui.theme.ClipboardProTheme
-import com.clipboardpro.share.ui.MainScreen
+import com.clipboardpro.vault.service.ClipboardCaptureActivity
+import com.clipboardpro.vault.service.LocalShareService
+import com.clipboardpro.vault.ui.theme.ClipboardProTheme
+import com.clipboardpro.vault.ui.MainScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        isAppAllowedState.value = com.clipboardpro.share.service.LicenseService(this).isAppAllowed()
+        isAppAllowedState.value = com.clipboardpro.vault.service.LicenseService(this).isAppAllowed()
         requestRequiredPermissions()
         setContent {
             val context = androidx.compose.ui.platform.LocalContext.current
@@ -69,7 +69,7 @@ class MainActivity : ComponentActivity() {
                         onThemeModeChanged = { newMode -> themeMode = newMode }
                     )
                 } else {
-                    com.clipboardpro.share.ui.LicenseGateScreen(
+                    com.clipboardpro.vault.ui.LicenseGateScreen(
                         onActivationSuccess = {
                             isAppAllowedState.value = true
                         }
@@ -89,7 +89,7 @@ class MainActivity : ComponentActivity() {
      */
     override fun onResume() {
         super.onResume()
-        isAppAllowedState.value = com.clipboardpro.share.service.LicenseService(this).isAppAllowed()
+        isAppAllowedState.value = com.clipboardpro.vault.service.LicenseService(this).isAppAllowed()
         // Capture whatever is currently on the clipboard when user opens the app.
         // ClipboardCaptureActivity handles deduplication and DB insertion safely.
         ClipboardCaptureActivity.launch(this)
@@ -129,7 +129,7 @@ class MainActivity : ComponentActivity() {
         // Launch Yoink overlay bubble if configured and permitted
         val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
         if (prefs.getBoolean("floating_yoink_enabled", false) && android.provider.Settings.canDrawOverlays(this)) {
-            startService(Intent(this, com.clipboardpro.share.service.FloatingYoinkService::class.java))
+            startService(Intent(this, com.clipboardpro.vault.service.FloatingYoinkService::class.java))
         }
     }
 

@@ -1,4 +1,4 @@
-package com.clipboardpro.share.service
+package com.clipboardpro.vault.service
 
 import android.content.Context
 import android.os.Build
@@ -29,13 +29,14 @@ class LicenseService(private val context: Context) {
 
         fun getMachineId(context: Context): String {
             return try {
-                val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "fallback_android"
-                val model = Build.MODEL ?: "fallback_model"
+                val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID) ?: "0000000000000000"
+                val model = Build.MODEL ?: "UnknownModel"
                 val raw = "${androidId}_${model}"
                 val digest = MessageDigest.getInstance("SHA-256").digest(raw.toByteArray(Charsets.UTF_8))
                 digest.joinToString("") { "%02x".format(it) }.substring(0, 32).lowercase()
             } catch (e: Exception) {
-                "fallback_safe_id_clipboardpro"
+                Log.e(TAG, "getMachineId error: ${e.message}")
+                "fallback_safe_id_clipboardpro_vault"
             }
         }
     }

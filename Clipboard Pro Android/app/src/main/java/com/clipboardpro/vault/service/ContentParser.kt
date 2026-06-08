@@ -1,6 +1,6 @@
-package com.clipboardpro.share.service
+package com.clipboardpro.vault.service
 
-import com.clipboardpro.share.model.ClipboardItemType
+import com.clipboardpro.vault.model.ClipboardItemType
 import java.util.regex.Pattern
 
 object ContentParser {
