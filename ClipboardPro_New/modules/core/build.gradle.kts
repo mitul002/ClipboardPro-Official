@@ -33,7 +33,6 @@ android {
 }
 
 dependencies {
-    implementation(project(ModuleDependency.CORE_PRIVATE))
     implementation(project(ModuleDependency.CORE_EXTENSIONS))
     implementation(project(ModuleDependency.LIBRARY_ROUNDED_SHEET))
 
