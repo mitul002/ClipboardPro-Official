@@ -101,7 +101,7 @@ object LibraryDependency {
 
     const val SIMPLE_SEARCH_VIEW = "com.github.Ferfalk:SimpleSearchView:${LibraryVersion.SIMPLE_SEARCH_VIEW}"
     const val ANDROIDX_PREFERENCES = "androidx.preference:preference:${LibraryVersion.PREFERENCES}"
-    const val FLEXBOX = "com.google.android:flexbox:${LibraryVersion.FLEXBOX}"
+    const val FLEXBOX = "com.google.android.flexbox:flexbox:${LibraryVersion.FLEXBOX}"
     const val LOTTIE = "com.airbnb.android:lottie:${LibraryVersion.LOTTIE}"
     const val ZXING_ANDROID_QR = "com.journeyapps:zxing-android-embedded:${LibraryVersion.ZXING_QR}"
     const val TOASTY = "com.github.GrenderG:Toasty:${LibraryVersion.TOASTY}"
