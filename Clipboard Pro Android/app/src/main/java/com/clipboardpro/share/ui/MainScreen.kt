@@ -78,7 +78,7 @@ fun MainScreen(
     val dbClips by database.clipboardDao().getAllItemsFlow().collectAsState(initial = emptyList())
     val dbSnippets by database.snippetDao().getAllSnippetsFlow().collectAsState(initial = emptyList())
 
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Vault, 1: Snippets, 2: Devices, 3: Transfers
+    var selectedTab by remember { mutableIntStateOf(0) } // 0: Vault, 1: Snippets, 2: Received, 3: Devices, 4: Transfers
     var showSettings by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     
@@ -189,7 +189,25 @@ fun MainScreen(
                             },
                             onEditSnippet = { snippet -> editingSnippet = snippet }
                         )
-                        2 -> DevicesTab(
+                        2 -> ReceivedTab(
+                            receivedItems = dbClips.filter { it.category == "Received" },
+                            onCopyText = { text ->
+                                val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                cb.setPrimaryClip(ClipData.newPlainText("text", text))
+                                Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                            },
+                            onDeleteText = { id -> service?.removeClipboardItem(id) },
+                            onClearAll = {
+                                scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                    database.clipboardDao().deleteByCategory("Received")
+                                }
+                            },
+                            onSendClick = { text ->
+                                itemToSend = text
+                                showBottomSheet = true
+                            }
+                        )
+                        3 -> DevicesTab(
                             peers = peers,
                             onSendFileSelected = { file, peer ->
                                 service?.sendFile(file, peer)
@@ -216,7 +234,7 @@ fun MainScreen(
                                 }
                             }
                         )
-                        3 -> TransfersTab(
+                        4 -> TransfersTab(
                             transfers = transfers,
                             onDeleteTransfer = { service?.removeTransfer(it) },
                             onClearAllTransfers = { service?.clearTransfers() }
@@ -385,13 +403,20 @@ fun AppBottomBar(selectedTab: Int, transferCount: Int, onTabSelected: (Int) -> U
         NavigationBarItem(
             selected = selectedTab == 2,
             onClick = { onTabSelected(2) },
-            icon = { Icon(Icons.Rounded.Devices, null) },
-            label = { Text("Devices", fontSize = 11.sp) },
+            icon = { Icon(Icons.Rounded.Article, null) },
+            label = { Text("Received", fontSize = 11.sp) },
             colors = navColors()
         )
         NavigationBarItem(
             selected = selectedTab == 3,
             onClick = { onTabSelected(3) },
+            icon = { Icon(Icons.Rounded.Devices, null) },
+            label = { Text("Devices", fontSize = 11.sp) },
+            colors = navColors()
+        )
+        NavigationBarItem(
+            selected = selectedTab == 4,
+            onClick = { onTabSelected(4) },
             icon = {
                 BadgedBox(badge = {
                     if (transferCount > 0)
@@ -1788,4 +1813,122 @@ private fun getFileName(context: Context, uri: Uri): String? {
         if (cursor.moveToFirst() && idx >= 0) name = cursor.getString(idx)
     }
     return name ?: uri.lastPathSegment
+}
+
+@Composable
+fun ReceivedTab(
+    receivedItems: List<ClipboardItemEntity>,
+    onCopyText: (String) -> Unit,
+    onDeleteText: (String) -> Unit,
+    onClearAll: () -> Unit,
+    onSendClick: (String) -> Unit
+) {
+    val context = LocalContext.current
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filtered = remember(receivedItems, searchQuery) {
+        if (searchQuery.isBlank()) receivedItems
+        else receivedItems.filter {
+            it.content.contains(searchQuery, ignoreCase = true) ||
+            it.title?.contains(searchQuery, ignoreCase = true) == true
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        SearchBar(
+            query = searchQuery,
+            onQueryChange = { searchQuery = it },
+            placeholder = "Search received texts..."
+        )
+
+        Spacer(Modifier.height(14.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "RECEIVED TEXTS", color = TextMuted, fontSize = 10.sp,
+                fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp
+            )
+            if (filtered.isNotEmpty()) {
+                Text(
+                    "Clear All", color = DangerRed, fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { onClearAll() }
+                )
+            }
+        }
+
+        if (filtered.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Rounded.Article, null, tint = TextMuted, modifier = Modifier.size(48.dp))
+                    Spacer(Modifier.height(12.dp))
+                    Text("No received texts yet", color = TextMuted, fontSize = 14.sp)
+                }
+            }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(filtered, key = { it.id }) { item ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardBg),
+                        border = BorderStroke(1.dp, BorderColor)
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Rounded.Computer, null, tint = Teal400, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(item.title ?: "From Desktop", color = Teal400, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.weight(1f))
+                                IconButton(onClick = { onDeleteText(item.id) }, modifier = Modifier.size(28.dp)) {
+                                    Icon(Icons.Rounded.Delete, "Delete", tint = DangerRed.copy(0.8f), modifier = Modifier.size(16.dp))
+                                }
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Text(text = item.content, color = TextPrimary, fontSize = 14.sp)
+                            Spacer(Modifier.height(12.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = getRelativeTime(item.timestamp),
+                                    color = TextMuted,
+                                    fontSize = 10.sp
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedButton(
+                                        onClick = { onCopyText(item.content) },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, BorderColor),
+                                        modifier = Modifier.height(30.dp)
+                                    ) {
+                                        Icon(Icons.Rounded.ContentCopy, null, tint = TextSecondary, modifier = Modifier.size(14.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Copy", color = TextSecondary, fontSize = 11.sp)
+                                    }
+                                    Button(
+                                        onClick = { onSendClick(item.content) },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Teal400),
+                                        modifier = Modifier.height(30.dp)
+                                    ) {
+                                        Icon(Icons.Rounded.Send, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                        Spacer(Modifier.width(4.dp))
+                                        Text("Send", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

@@ -114,6 +114,9 @@ interface ClipboardDao {
     @Query("DELETE FROM ClipboardItems")
     suspend fun clearAll()
 
+    @Query("DELETE FROM ClipboardItems WHERE Category = :category")
+    suspend fun deleteByCategory(category: String)
+
     @Query("DELETE FROM ClipboardItems WHERE IsPinned = 0 AND Timestamp < :cutoffTime")
     suspend fun trimOldItems(cutoffTime: Long)
 
