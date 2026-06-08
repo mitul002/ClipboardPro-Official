@@ -17,7 +17,7 @@ private object LibraryVersion {
     const val COROUTINES_ADAPTER = "0.9.2"
     const val SIMPLE_SEARCH_VIEW = "0.1.5"
     const val PREFERENCES = "1.1.1"
-    const val FLEXBOX = "2.0.1"
+    const val FLEXBOX = "3.0.0"
     const val LOTTIE = "3.4.0"
     const val ZXING_QR = "4.3.0"
     const val TOASTY = "1.5.2"
