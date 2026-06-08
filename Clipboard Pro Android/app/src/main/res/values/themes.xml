@@ -1,8 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.ClipboardPro" parent="android:Theme.DeviceDefault.NoActionBar">
+    <!-- Main app theme — must be Material3 so Compose/Material3 can inflate correctly -->
+    <style name="Theme.ClipboardPro" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">#0D0D0F</item>
         <item name="android:statusBarColor">#0D0D0F</item>
         <item name="android:navigationBarColor">#1A1A1F</item>
+    </style>
+
+    <!-- Invisible theme for ClipboardCaptureActivity.
+         Uses Translucent (not NoDisplay) so finish() can be called async
+         without crashing. The window is zero-size and fully transparent. -->
+    <style name="Theme.Transparent.Capture" parent="android:Theme.Translucent.NoTitleBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
     </style>
 </resources>
