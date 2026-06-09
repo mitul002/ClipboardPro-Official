@@ -17,7 +17,7 @@ import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import com.clipboardpro.vault.service.ClipboardCaptureActivity
 import com.clipboardpro.vault.service.LocalShareService
-import com.clipboardpro.vault.ui.theme.ClipboardProTheme
+import com.clipboardpro.vault.ui.theme.ClipboardVaultTheme
 import com.clipboardpro.vault.ui.MainScreen
 
 class MainActivity : ComponentActivity() {
@@ -75,7 +75,7 @@ class MainActivity : ComponentActivity() {
 
             val isAllowed by isAppAllowedState
 
-            ClipboardProTheme(themeMode = themeMode) {
+            ClipboardVaultTheme(themeMode = themeMode) {
                 if (isAllowed) {
                     MainScreen(
                         serviceProvider = { shareService },

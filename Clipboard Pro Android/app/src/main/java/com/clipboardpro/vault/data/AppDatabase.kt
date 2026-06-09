@@ -23,7 +23,7 @@ abstract class AppDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "clipboardpro_database"
+                    "clipboardvault_database"
                 )
                     .setJournalMode(JournalMode.WRITE_AHEAD_LOGGING) // High performance WAL mode matching C#
                     .fallbackToDestructiveMigration()

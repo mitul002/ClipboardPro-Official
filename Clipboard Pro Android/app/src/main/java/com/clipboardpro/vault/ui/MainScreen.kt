@@ -345,7 +345,7 @@ fun TopBar(peers: List<PeerDevice>, isServiceBound: Boolean, onSettingsClick: ()
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    "ClipboardPro",
+                    "Clipboard Vault",
                     color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1138,7 +1138,7 @@ fun AddSnippetDialog(
                     val t = trigger.trim()
                     when {
                         t.isBlank() -> triggerError = "Please enter a trigger."
-                        !com.clipboardpro.vault.service.TextExpanderService.hasValidDelimiter(t) ->
+                        !com.Clipboard Vault.vault.service.TextExpanderService.hasValidDelimiter(t) ->
                             triggerError = "Must start or end with a symbol: $delimiterHint"
                         content.isBlank() -> { /* handled by disabled state */ }
                         else -> onSave(t, content, desc)
@@ -1242,7 +1242,7 @@ fun EditSnippetDialog(
                     val t = trigger.trim()
                     when {
                         t.isBlank() -> triggerError = "Please enter a trigger."
-                        !com.clipboardpro.vault.service.TextExpanderService.hasValidDelimiter(t) ->
+                        !com.Clipboard Vault.vault.service.TextExpanderService.hasValidDelimiter(t) ->
                             triggerError = "Must start or end with a symbol: $delimiterHint"
                         content.isBlank() -> { /* handled by disabled state */ }
                         else -> onSave(t, content, desc)
@@ -1557,7 +1557,7 @@ fun ScanningAnimation() {
             Text("Searching for devices...", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(6.dp))
             Text(
-                "Make sure ClipboardPro is active\non your Windows PC",
+                "Make sure Clipboard Vault is active\non your Windows PC",
                 color = TextMuted, fontSize = 12.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 40.dp)

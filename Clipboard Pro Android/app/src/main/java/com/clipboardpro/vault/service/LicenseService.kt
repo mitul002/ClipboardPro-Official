@@ -24,7 +24,7 @@ class LicenseService(private val context: Context) {
         private const val TAG = "LicenseService"
         private val LIC_SALT = "Cl1pb0ardPr0_K8#zP5@qL9!mN2&wX_S3cr3t".toByteArray(Charsets.UTF_8)
         private const val LICENSE_URL = "https://cross-tech-admin.vercel.app/api/validate"
-        private const val APP_NAME = "ClipboardPro"
+        private const val APP_NAME = "Clipboard Vault"
         private const val OFFLINE_GRACE_PERIOD_MS = 7L * 24 * 60 * 60 * 1000 // 7 days
 
         fun getMachineId(context: Context): String {
@@ -36,7 +36,7 @@ class LicenseService(private val context: Context) {
                 digest.joinToString("") { "%02x".format(it) }.substring(0, 32).lowercase()
             } catch (e: Exception) {
                 Log.e(TAG, "getMachineId error: ${e.message}")
-                "fallback_safe_id_clipboardpro_vault"
+                "fallback_safe_id_clipboardvault"
             }
         }
     }

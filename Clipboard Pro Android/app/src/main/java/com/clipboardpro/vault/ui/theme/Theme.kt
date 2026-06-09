@@ -113,7 +113,7 @@ private val LightColors = lightColorScheme(
 // Theme composable
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
-fun ClipboardProTheme(themeMode: String, content: @Composable () -> Unit) {
+fun ClipboardVaultTheme(themeMode: String, content: @Composable () -> Unit) {
     val systemInDark = isSystemInDarkTheme()
     val isDark = when (themeMode) {
         "light" -> false

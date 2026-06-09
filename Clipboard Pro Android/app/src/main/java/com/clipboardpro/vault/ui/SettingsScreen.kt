@@ -151,7 +151,7 @@ fun SettingsScreen(
                         yoinkEnabled = checked
                         getPrefs(context).edit().putBoolean("floating_yoink_enabled", checked).apply()
                         
-                        val intent = Intent(context, com.clipboardpro.vault.service.FloatingYoinkService::class.java)
+                        val intent = Intent(context, com.Clipboard Vault.vault.service.FloatingYoinkService::class.java)
                         if (checked) {
                             context.startService(intent)
                         } else {
@@ -227,13 +227,13 @@ fun SettingsScreen(
                 onClick = {
                     scope.launch(Dispatchers.IO) {
                         try {
-                            val dbFile = context.getDatabasePath("clipboardpro_database")
-                            val dbWal = context.getDatabasePath("clipboardpro_database-wal")
-                            val dbShm = context.getDatabasePath("clipboardpro_database-shm")
+                            val dbFile = context.getDatabasePath("clipboardvault_database")
+                            val dbWal = context.getDatabasePath("clipboardvault_database-wal")
+                            val dbShm = context.getDatabasePath("clipboardvault_database-shm")
                             
                             val exportDir = File(
                                 android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
-                                "ClipboardPro"
+                                "Clipboard Vault"
                             ).apply { mkdirs() }
                             
                             val backupZip = File(exportDir, "Backup_${System.currentTimeMillis()}.zip")
@@ -289,7 +289,7 @@ fun SettingsScreen(
                             }
                             tempFile.delete()
                             
-                            val dbBackup = File(tempDbDir, "clipboardpro_database")
+                            val dbBackup = File(tempDbDir, "clipboardvault_database")
                             if (dbBackup.exists()) {
                                 tempBackupFile = dbBackup
                                 withContext(Dispatchers.Main) {
@@ -368,9 +368,9 @@ fun SettingsScreen(
                                         showRestoreDialog = false
                                         scope.launch(Dispatchers.IO) {
                                             try {
-                                                val currentDbFile = context.getDatabasePath("clipboardpro_database")
-                                                val currentDbWal = context.getDatabasePath("clipboardpro_database-wal")
-                                                val currentDbShm = context.getDatabasePath("clipboardpro_database-shm")
+                                                val currentDbFile = context.getDatabasePath("clipboardvault_database")
+                                                val currentDbWal = context.getDatabasePath("clipboardvault_database-wal")
+                                                val currentDbShm = context.getDatabasePath("clipboardvault_database-shm")
                                                 
                                                 AppDatabase.getDatabase(context).close()
                                                 
@@ -380,11 +380,11 @@ fun SettingsScreen(
                                                 
                                                 file.copyTo(currentDbFile, overwrite = true)
                                                 
-                                                val backupWal = File(file.parentFile, "clipboardpro_database-wal")
+                                                val backupWal = File(file.parentFile, "clipboardvault_database-wal")
                                                 if (backupWal.exists()) {
                                                     backupWal.copyTo(currentDbWal, overwrite = true)
                                                 }
-                                                val backupShm = File(file.parentFile, "clipboardpro_database-shm")
+                                                val backupShm = File(file.parentFile, "clipboardvault_database-shm")
                                                 if (backupShm.exists()) {
                                                     backupShm.copyTo(currentDbShm, overwrite = true)
                                                 }
@@ -461,7 +461,7 @@ fun SettingsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         androidx.compose.foundation.Image(
-                            painter = androidx.compose.ui.res.painterResource(id = com.clipboardpro.vault.R.drawable.logo),
+                            painter = androidx.compose.ui.res.painterResource(id = com.Clipboard Vault.vault.R.drawable.logo),
                             contentDescription = "App Logo",
                             modifier = Modifier.size(44.dp)
                         )
@@ -671,7 +671,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     if (licenseStatus.isLicensed) {
-                        Text("Your ClipboardPro Pro version is successfully activated and registered.", color = TextPrimary, fontSize = 14.sp)
+                        Text("Your Clipboard Vault Pro version is successfully activated and registered.", color = TextPrimary, fontSize = 14.sp)
                         Spacer(Modifier.height(4.dp))
                         Text("Registered Email: ${licenseStatus.email}", color = TextMuted, fontSize = 13.sp)
                         Text("License Type: ${licenseStatus.licenseType?.uppercase()}", color = TextMuted, fontSize = 13.sp)

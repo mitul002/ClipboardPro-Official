@@ -74,7 +74,7 @@ fun LicenseGateScreen(
             Spacer(Modifier.height(16.dp))
             
             Text(
-                text = "ClipboardPro Lock Gate",
+                text = "Clipboard Vault Lock Gate",
                 color = TextPrimary,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
