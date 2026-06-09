@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,14 +48,28 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        isAppAllowedState.value = com.clipboardpro.vault.service.LicenseService(this).isAppAllowed()
+        Log.d("MainActivity", "onCreate started")
+
+        try {
+            // Check license/trial status safely
+            val licenseService = com.clipboardpro.vault.service.LicenseService(this)
+            isAppAllowedState.value = licenseService.isAppAllowed()
+            Log.d("MainActivity", "App allowed: ${isAppAllowedState.value}")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "License check failed: ${e.message}")
+            isAppAllowedState.value = true // Safe fallback to allow app to open
+        }
+
         requestRequiredPermissions()
+
         setContent {
             val context = androidx.compose.ui.platform.LocalContext.current
             var themeMode by remember {
                 mutableStateOf(
-                    context.getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
-                        .getString("theme_mode", "system") ?: "system"
+                    try {
+                        context.getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
+                            .getString("theme_mode", "system") ?: "system"
+                    } catch (e: Exception) { "system" }
                 )
             }
 
@@ -79,57 +94,35 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * When the app is opened by the user (comes to foreground), also capture
-     * the current clipboard. This is the fallback path for when the user
-     * copied something while the app was closed and then opens the app manually.
-     *
-     * The actual "real-time" copy detection is handled by the AccessibilityService
-     * (TextExpanderService) → ClipboardCaptureActivity pipeline.
-     */
     override fun onResume() {
         super.onResume()
-        isAppAllowedState.value = com.clipboardpro.vault.service.LicenseService(this).isAppAllowed()
-        // Capture whatever is currently on the clipboard when user opens the app.
-        // ClipboardCaptureActivity handles deduplication and DB insertion safely.
-        ClipboardCaptureActivity.launch(this)
-    }
-
-    private fun requestRequiredPermissions() {
-        val needed = mutableListOf<String>()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (!hasPermission(Manifest.permission.POST_NOTIFICATIONS))
-                needed.add(Manifest.permission.POST_NOTIFICATIONS)
-            if (!hasPermission(Manifest.permission.READ_MEDIA_IMAGES))
-                needed.add(Manifest.permission.READ_MEDIA_IMAGES)
-        } else {
-            if (!hasPermission(Manifest.permission.READ_EXTERNAL_STORAGE))
-                needed.add(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-
-        if (needed.isNotEmpty()) {
-            permissionLauncher.launch(needed.toTypedArray())
-        } else {
-            startAndBindService()
+        try {
+            isAppAllowedState.value = com.clipboardpro.vault.service.LicenseService(this).isAppAllowed()
+            // Capture current clipboard via transparent trampoline
+            ClipboardCaptureActivity.launch(this)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "onResume error: ${e.message}")
         }
     }
-
-    private fun hasPermission(perm: String) =
-        ContextCompat.checkSelfPermission(this, perm) == PackageManager.PERMISSION_GRANTED
 
     private fun startAndBindService() {
-        val intent = Intent(this, LocalShareService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
-        }
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        try {
+            val intent = Intent(this, LocalShareService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+            Log.d("MainActivity", "LocalShareService started and binding...")
 
-        // Launch Yoink overlay bubble if configured and permitted
-        val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
-        if (prefs.getBoolean("floating_yoink_enabled", false) && android.provider.Settings.canDrawOverlays(this)) {
-            startService(Intent(this, com.clipboardpro.vault.service.FloatingYoinkService::class.java))
+            // Launch Yoink overlay bubble if configured and permitted
+            val prefs = getSharedPreferences("localshare_prefs", Context.MODE_PRIVATE)
+            if (prefs.getBoolean("floating_yoink_enabled", false) && android.provider.Settings.canDrawOverlays(this)) {
+                startService(Intent(this, com.clipboardpro.vault.service.FloatingYoinkService::class.java))
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Service startup failed: ${e.message}")
         }
     }
 

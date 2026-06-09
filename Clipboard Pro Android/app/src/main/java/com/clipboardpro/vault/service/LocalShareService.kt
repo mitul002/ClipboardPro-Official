@@ -40,7 +40,7 @@ class LocalShareService : Service() {
 
     companion object {
         private const val TAG = "LocalShareService"
-        private const val CHANNEL_ID = "ClipboardPro_Share"
+        private const val CHANNEL_ID = "ClipboardVault_Share"
         private const val NOTIFICATION_ID = 1001
     }
 
@@ -213,14 +213,17 @@ class LocalShareService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        Log.i(TAG, "LocalShareService creating...")
         database = AppDatabase.getDatabase(this)
 
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification("Scanning for nearby devices..."))
-
-        // Clipboard monitoring is handled by TextExpanderService (Accessibility Service),
-        // which can read the clipboard in background on Android 10+.
-        // This service only saves items sent explicitly via addClipboardItem().
+        // Must call startForeground in onCreate for Android 12+ compatibility
+        val notification = buildNotification("Vault sync is active")
+        try {
+            startForeground(NOTIFICATION_ID, notification)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start foreground: ${e.message}")
+        }
 
         acquireMulticastLock()
         initNetworking()
@@ -229,7 +232,7 @@ class LocalShareService : Service() {
 
     private fun acquireMulticastLock() {
         val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        multicastLock = wifiManager.createMulticastLock("ClipboardProDiscovery").apply {
+        multicastLock = wifiManager.createMulticastLock("ClipboardVaultDiscovery").apply {
             setReferenceCounted(true)
             acquire()
         }
@@ -254,7 +257,7 @@ class LocalShareService : Service() {
                     android.os.Handler(android.os.Looper.getMainLooper()).post {
                         try {
                             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                            cm.setPrimaryClip(ClipData.newPlainText("ClipboardPro Sync", text))
+                            cm.setPrimaryClip(ClipData.newPlainText("Clipboard Vault Sync", text))
                             Log.d(TAG, "System clipboard updated automatically.")
                         } catch (e: Exception) {
                             Log.e(TAG, "Failed to set clipboard: ${e.localizedMessage}")
@@ -304,7 +307,7 @@ class LocalShareService : Service() {
     }
 
     private fun generateInstanceId(): String {
-        val prefs = getSharedPreferences("clipboardpro", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("clipboardvault", Context.MODE_PRIVATE)
         var id = prefs.getString("instance_id", null)
         if (id == null) {
             id = java.util.UUID.randomUUID().toString().substring(0, 8)
@@ -350,10 +353,10 @@ class LocalShareService : Service() {
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "ClipboardPro Local Share",
+            "Clipboard Vault Sync",
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "Local file sharing service"
+            description = "Handles local network clipboard synchronization"
         }
         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
             .createNotificationChannel(channel)
@@ -361,12 +364,18 @@ class LocalShareService : Service() {
 
     private fun buildNotification(text: String): Notification {
         val intent = Intent(this, MainActivity::class.java)
-        val pi = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+        val pi = PendingIntent.getActivity(
+            this, 0, intent, 
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("ClipboardPro Share")
+            .setContentTitle("Clipboard Vault")
             .setContentText(text)
             .setSmallIcon(R.drawable.logo)
             .setContentIntent(pi)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setOngoing(true)
             .build()
     }
