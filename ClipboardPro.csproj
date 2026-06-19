@@ -19,7 +19,7 @@
     <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationIcon>ClipboardPro.ico</ApplicationIcon>
-    <DefaultItemExcludes>$(DefaultItemExcludes);project backup\**;Installer\**;dist\**;dist_final\**;dist_full\**;publish\**;New folder\**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);project backup\**;Installer\**;dist\**;dist_final\**;dist_full\**;publish\**;New folder\**;XClipper_Git\**;XClipper_Source\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

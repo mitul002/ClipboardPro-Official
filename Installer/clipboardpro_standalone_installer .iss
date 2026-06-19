@@ -83,7 +83,7 @@ var
   ErrorCode: Integer;
 begin
   // Safe kill the process if running
-  ShellExec('open', 'taskkill.exe', '/f /im {#AppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/f /im {#AppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
   Result := True;
 end;
 
@@ -124,7 +124,7 @@ var
   ErrorCode: Integer;
 begin
   // Safe kill the process if running, to ensure files can be overwritten
-  ShellExec('open', 'taskkill.exe', '/f /im {#AppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/f /im {#AppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
   
   Result := True;
 end;
