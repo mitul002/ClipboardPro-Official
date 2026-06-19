@@ -3,6 +3,7 @@
 [![Windows Version](https://img.shields.io/badge/Windows-10%20%2F%2011-blue.svg?style=flat-square&logo=windows)](https://clipboardpro.vercel.app)
 [![Release Version](https://img.shields.io/github/v/release/mitul002/ClipboardPro-Official?style=flat-square&logo=github)](https://github.com/mitul002/ClipboardPro-Official/releases/latest)
 [![Official Website](https://img.shields.io/badge/Website-clipboardpro.vercel.app-indigo.svg?style=flat-square)](https://clipboardpro.vercel.app)
+[![WinGet Version](https://img.shields.io/winget/v/CrossTech.ClipboardPro?style=flat-square&logo=windows-terminal&logoColor=white&color=indigo)](https://github.com/microsoft/winget-pkgs/tree/master/manifests/c/CrossTech/ClipboardPro)
 [![Buy License](https://img.shields.io/badge/Purchase-Lemon%20Squeezy-orange.svg?style=flat-square)](https://crosstech.lemonsqueezy.com/checkout/buy/0e946ba1-a181-4747-a3ee-3719a41cbbb0?enabled=1716270)
 
 **ClipboardPro** is a premium, high-performance native Windows clipboard manager and productivity suite. Engineered in native C# / WPF for maximum speed and sub-10MB RAM efficiency, it features an intelligent multi-format history vault, macOS-style drag-and-drop temporary shelf, automatic content formatters, and secure LAN synchronization.
