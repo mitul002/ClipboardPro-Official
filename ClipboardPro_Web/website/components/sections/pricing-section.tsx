@@ -226,7 +226,7 @@ export function PricingSection() {
                     asChild
                   >
                     <a
-                      href="/ClipboardPro-Setup.exe"
+                      href="/ClipboardPro.exe"
                       download
                       className="flex items-center justify-center w-full h-full gap-2 cursor-pointer"
                     >

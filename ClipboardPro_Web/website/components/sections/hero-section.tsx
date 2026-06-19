@@ -342,7 +342,7 @@ export function HeroSection() {
                   className="relative group h-12 sm:h-14 px-10 min-w-[180px] sm:min-w-[200px] text-sm sm:text-base font-bold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 transition-all duration-300 overflow-hidden shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.35)] rounded-xl flex items-center justify-center shrink-0"
                   asChild
                 >
-                  <a href="/ClipboardPro-Setup.exe" download className="flex items-center justify-center gap-2">
+                  <a href="/ClipboardPro.exe" download className="flex items-center justify-center gap-2">
                     <motion.div
                       className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full"
                       animate={{ translateX: ["100%", "-100%"] }}

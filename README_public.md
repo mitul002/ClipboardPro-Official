@@ -11,7 +11,7 @@
 
 ## ⚡ Direct Download & Shop Links
 
-* 📥 **[Download Latest Installer (.exe)](https://github.com/mitul002/ClipboardPro-Official/releases/download/v1.0.0/ClipboardPro-Setup.exe)**
+* 📥 **[Download Latest Installer (.exe)](https://clipboardpro.vercel.app/ClipboardPro.exe)**
 * 🌐 **[Official Website & Demo](https://clipboardpro.vercel.app)**
 * 🛒 **[Purchase Yearly Pro License ($9.99/Year)](https://crosstech.lemonsqueezy.com/checkout/buy/0e946ba1-a181-4747-a3ee-3719a41cbbb0?enabled=1716270)**
 * 🛒 **[Purchase Lifetime Pro License ($19.99 One-Time)](https://crosstech.lemonsqueezy.com/checkout/buy/b6bafa95-126c-4c5f-82ab-4b0d4a3f5e7f?enabled=1716321)**
@@ -79,7 +79,7 @@
 ## 💾 Installation Options
 
 ### Method 1: Direct Executable Installer
-1. Download `ClipboardPro-Setup.exe` from the **[Releases Page](https://github.com/mitul002/ClipboardPro-Official/releases/latest)**.
+1. Download `ClipboardPro.exe` from the **[Official Website](https://clipboardpro.vercel.app)**.
 2. Double-click the installer, click **Install**, and the app will launch instantly in the system tray.
 
 ### Method 2: Windows Package Manager (Winget)

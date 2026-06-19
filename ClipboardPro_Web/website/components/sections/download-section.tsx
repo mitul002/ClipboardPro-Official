@@ -138,7 +138,7 @@ export function DownloadSection() {
                 className="relative group w-full sm:w-auto h-16 sm:h-20 px-8 sm:px-12 text-lg sm:text-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border-0 transition-all duration-300 overflow-hidden"
                 asChild
               >
-                <a href="/ClipboardPro-Setup.exe" download className="flex items-center justify-center gap-3 w-full h-full">
+                <a href="/ClipboardPro.exe" download className="flex items-center justify-center gap-3 w-full h-full">
                   {/* Shine effect */}
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
