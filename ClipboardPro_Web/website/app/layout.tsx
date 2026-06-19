@@ -9,7 +9,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'ClipboardPro - Secure Zero-Trust Clipboard Mirroring',
+  title: 'ClipboardPro - The secure copy space',
   description: 'ClipboardPro is an ultra-fast, native C# WPF desktop client and peer-to-peer secure sync engine that mirrors your clipboard history across Windows devices in under 100ms.',
   keywords: ['Windows', 'clipboard manager', 'zero-trust sync', 'WPF client', 'AES-GCM-256', 'secure mirroring'],
   authors: [{ name: 'ClipboardPro Team' }],
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     icon: '/logo.png',
   },
   openGraph: {
-    title: 'ClipboardPro - Secure Zero-Trust Clipboard Mirroring',
+    title: 'ClipboardPro - The secure copy space',
     description: 'A native C# WPF clipboard sync utility utilizing secure end-to-end client-side encryption and motherboard HWID device binding.',
     type: 'website',
   },
