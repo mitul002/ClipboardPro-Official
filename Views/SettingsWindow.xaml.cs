@@ -363,7 +363,7 @@ namespace ClipboardPro.Views
                     // Show Annual vs Lifetime in badge
                     var licType = status.LicenseType ?? "lifetime";
                     var licTypeLabel = licType == "annual"
-                        ? $"Annual License (renews yearly)"
+                        ? $"Annual License (needs renewal yearly)"
                         : "Lifetime License";
 
                     TxtLicenseBadge.Text        = status.KeyPreview ?? "";
@@ -627,6 +627,133 @@ namespace ClipboardPro.Views
                 if (BtnActivateLicense != null) BtnActivateLicense.IsEnabled = true;
                 if (BtnLicTransfer != null) BtnLicTransfer.IsEnabled = true;
             }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        //  About Tab — Auto Update Logic (OrbitSwipe style)
+        // ══════════════════════════════════════════════════════════════════════
+        private System.Windows.Threading.DispatcherTimer? _updSpinnerTimer;
+        private string? _pendingDownloadUrl;
+
+        private void StartUpdSpinner()
+        {
+            if (UpdSpinner == null || UpdSpinnerRotate == null) return;
+            UpdSpinner.Visibility = Visibility.Visible;
+            if (_updSpinnerTimer == null)
+            {
+                _updSpinnerTimer = new System.Windows.Threading.DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(30)
+                };
+                _updSpinnerTimer.Tick += (s, e) =>
+                {
+                    UpdSpinnerRotate.Angle = (UpdSpinnerRotate.Angle + 12) % 360;
+                };
+            }
+            _updSpinnerTimer.Start();
+        }
+
+        private void StopUpdSpinner()
+        {
+            _updSpinnerTimer?.Stop();
+            if (UpdSpinner != null) UpdSpinner.Visibility = Visibility.Collapsed;
+        }
+
+        private async void BtnCheckUpdate_Click(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(_pendingDownloadUrl))
+            {
+                _ = DownloadAndUpdateAsync(_pendingDownloadUrl);
+                return;
+            }
+
+            BtnCheckUpdate.IsEnabled = false;
+            BtnCheckUpdate.Content = "Checking for updates...";
+            StartUpdSpinner();
+            UpdProgContainer.Visibility = Visibility.Collapsed;
+
+            var result = await UpdateService.CheckForUpdatesAsync();
+
+            StopUpdSpinner();
+
+            if (!string.IsNullOrEmpty(result.Error))
+            {
+                BtnCheckUpdate.Content = "Check failed";
+                try
+                {
+                    BtnCheckUpdate.Foreground = (System.Windows.Media.Brush)FindResource("DangerBrush");
+                }
+                catch { }
+                await Task.Delay(3000);
+                ResetUpdateUi();
+                return;
+            }
+
+            if (result.Available)
+            {
+                _pendingDownloadUrl = result.DownloadUrl;
+                BtnCheckUpdate.Content = $"New version available (v{result.Version}) — Click to Install";
+                try
+                {
+                    BtnCheckUpdate.Foreground = (System.Windows.Media.Brush)FindResource("AccentPrimary");
+                }
+                catch { }
+                BtnCheckUpdate.IsEnabled = true;
+            }
+            else
+            {
+                BtnCheckUpdate.Content = "You are on the latest version";
+                try
+                {
+                    BtnCheckUpdate.Foreground = (System.Windows.Media.Brush)FindResource("SuccessBrush");
+                }
+                catch { }
+                await Task.Delay(3000);
+                ResetUpdateUi();
+            }
+        }
+
+        private async Task DownloadAndUpdateAsync(string url)
+        {
+            BtnCheckUpdate.IsEnabled = false;
+            BtnCheckUpdate.Content = "Downloading...";
+            UpdProgContainer.Visibility = Visibility.Visible;
+
+            var progress = new Progress<(long downloaded, long total, int percent)>(p =>
+            {
+                PbarUpdate.Value = p.percent;
+                double mb = p.downloaded / (1024.0 * 1024.0);
+                TxtUpdStatus.Text = $"Downloading update... {mb:F1} MB ({p.percent}%)";
+            });
+
+            try
+            {
+                await UpdateService.DownloadAndInstallAsync(url, progress);
+            }
+            catch
+            {
+                TxtUpdStatus.Text = "Download failed!";
+                try
+                {
+                    TxtUpdStatus.Foreground = (System.Windows.Media.Brush)FindResource("DangerBrush");
+                }
+                catch { }
+                await Task.Delay(3000);
+                UpdProgContainer.Visibility = Visibility.Collapsed;
+                ResetUpdateUi();
+            }
+        }
+
+        private void ResetUpdateUi()
+        {
+            _pendingDownloadUrl = null;
+            BtnCheckUpdate.Content = "Check for updates";
+            try
+            {
+                BtnCheckUpdate.Foreground = (System.Windows.Media.Brush)FindResource("TextMuted");
+            }
+            catch { }
+            BtnCheckUpdate.IsEnabled = true;
         }
     }
 }
