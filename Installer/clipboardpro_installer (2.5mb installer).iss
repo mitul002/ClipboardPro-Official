@@ -27,7 +27,6 @@ SetupIconFile=..\ClipboardPro.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
-AppMutex=ClipboardPro_Mutex_Global
 VersionInfoVersion={#AppVersion}
 VersionInfoCompany={#AppPublisher}
 VersionInfoDescription={#AppName} Setup
@@ -170,9 +169,16 @@ begin
 end;
 
 function InitializeSetup(): Boolean;
+var
+  ErrorCode: Integer;
 begin
   DotNetAsked := False;
   DotNetUserConfirmed := False;
+  
+  // Safe kill the process if running, so setup proceeds without prompt
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/f /im {#AppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  Sleep(500);
+
   Result := True;
 end;
 
