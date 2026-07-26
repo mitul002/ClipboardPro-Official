@@ -127,7 +127,16 @@ begin
 end;
 
 function InitializeSetup(): Boolean;
+var
+  ErrorCode: Integer;
 begin
+  // Safely kill running ClipboardPro.exe app instances while preserving current setup installer process
+  try
+    Exec('powershell.exe',
+         '-NoProfile -ExecutionPolicy Bypass -Command "$myId = [System.Diagnostics.Process]::GetCurrentProcess().Id; Get-Process ClipboardPro -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $myId } | Stop-Process -Force"',
+         '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  except
+  end;
   Result := True;
 end;
 
