@@ -89,7 +89,7 @@ namespace ClipboardPro.Services
                     tagName = await GetLatestTagFromHtmlAsync();
                     if (!string.IsNullOrEmpty(tagName))
                     {
-                        downloadUrl = $"https://github.com/{GITHUB_REPO}/releases/download/{tagName}/ClipboardPro-Setup.exe";
+                        downloadUrl = $"https://github.com/{GITHUB_REPO}/releases/download/{tagName}/ClipboardPro.exe";
                     }
                 }
 
@@ -155,7 +155,7 @@ namespace ClipboardPro.Services
 
             string tempDir = Path.GetTempPath();
             string fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
-            if (string.IsNullOrEmpty(fileName)) fileName = "ClipboardPro-Setup.exe";
+            if (string.IsNullOrEmpty(fileName)) fileName = "ClipboardPro.exe";
             string tempFilePath = Path.Combine(tempDir, fileName);
 
             using var client = new HttpClient();

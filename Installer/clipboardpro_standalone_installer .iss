@@ -27,7 +27,7 @@ PrivilegesRequiredOverridesAllowed=dialog commandline
 CloseApplications=yes
 CloseApplicationsFilter=*ClipboardPro.exe*
 OutputDir=.
-OutputBaseFilename={#AppName}-Setup
+OutputBaseFilename={#AppName}
 SetupIconFile=..\ClipboardPro.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -127,13 +127,7 @@ begin
 end;
 
 function InitializeSetup(): Boolean;
-var
-  ErrorCode: Integer;
 begin
-  try
-    Exec('taskkill.exe', '/f /im {#AppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
-  except
-  end;
   Result := True;
 end;
 
