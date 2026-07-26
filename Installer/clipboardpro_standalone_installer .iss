@@ -22,13 +22,13 @@ DisableDirPage=no
 DisableProgramGroupPage=yes
 DisableWelcomePage=no
 PrivilegesRequired=admin
-PrivilegesRequiredOverridesAllowed=commandline dialog
 OutputDir=.
-OutputBaseFilename=ClipboardPro
+OutputBaseFilename={#AppName}
 SetupIconFile=..\ClipboardPro.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
+AppMutex=ClipboardPro_Mutex_Global
 VersionInfoVersion=1.4.0.0
 VersionInfoCompany={#AppPublisher}
 VersionInfoDescription={#AppName} Setup
@@ -67,18 +67,15 @@ procedure InitializeWizard();
 var
   CustomLabel: TLabel;
 begin
-  if not WizardSilent then
-  begin
-    // Branding Label at bottom-left
-    CustomLabel := TLabel.Create(WizardForm);
-    CustomLabel.Parent := WizardForm;
-    CustomLabel.Left := ScaleX(10);
-    CustomLabel.Top := WizardForm.ClientHeight - ScaleY(25);
-    CustomLabel.Caption := 'Developed by ' + '{#AppDeveloper}' + ' || ' + '{#AppPublisher}';
-    CustomLabel.Font.Color := clGrayText;
-    CustomLabel.Font.Name := 'Segoe UI';
-    CustomLabel.Font.Size := 8;
-  end;
+  // Branding Label at bottom-left
+  CustomLabel := TLabel.Create(WizardForm);
+  CustomLabel.Parent := WizardForm;
+  CustomLabel.Left := ScaleX(10);
+  CustomLabel.Top := WizardForm.ClientHeight - ScaleY(25);
+  CustomLabel.Caption := 'Developed by ' + '{#AppDeveloper}' + ' || ' + '{#AppPublisher}';
+  CustomLabel.Font.Color := clGrayText;
+  CustomLabel.Font.Name := 'Segoe UI';
+  CustomLabel.Font.Size := 8;
 end;
 
 function InitializeUninstall(): Boolean;
@@ -122,13 +119,17 @@ begin
   end;
 end;
 
-function InitializeSetup(): Boolean;
+function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ErrorCode: Integer;
 begin
-  // Kill any running ClipboardPro process before setup, so no "close app" dialog appears
+  // Kill running instance right before file extraction starts (after UAC elevation server is initialized)
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/f /im {#AppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
-  Sleep(500);
+  Result := '';
+end;
+
+function InitializeSetup(): Boolean;
+begin
   Result := True;
 end;
 

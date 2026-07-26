@@ -153,13 +153,30 @@ namespace ClipboardPro.Services
             if (string.IsNullOrEmpty(downloadUrl))
                 throw new ArgumentException("Download URL is empty.");
 
-            string tempDir = Path.GetTempPath();
-            // Always save as ClipboardPro.exe — same name as installer output
-            string tempFilePath = Path.Combine(tempDir, "ClipboardPro.exe");
+            string tempDir = Path.Combine(Path.GetTempPath(), "ClipboardProUpdates");
+            if (!Directory.Exists(tempDir))
+            {
+                Directory.CreateDirectory(tempDir);
+            }
+            else
+            {
+                try
+                {
+                    foreach (var f in Directory.GetFiles(tempDir))
+                    {
+                        try { File.Delete(f); } catch { }
+                    }
+                }
+                catch { }
+            }
+
+            string fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
+            if (string.IsNullOrEmpty(fileName)) fileName = "ClipboardPro-Setup.exe";
+            string tempFilePath = Path.Combine(tempDir, fileName);
 
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromMinutes(10);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) ClipboardPro-AutoUpdater/1.0");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("ClipboardPro-AutoUpdater/1.0");
 
             using var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
@@ -184,35 +201,22 @@ namespace ClipboardPro.Services
 
             fileStream.Close();
 
-            // Create a batch script that:
-            // 1. Waits for ClipboardPro.exe to fully close
-            // 2. Runs the downloaded installer silently (no UI window)
-            // 3. Deletes itself
-            string batPath = Path.Combine(tempDir, "clipboardpro_update.bat");
-            string batContent =
-                "@echo off\r\n" +
-                "title ClipboardPro Update\r\n" +
-                ":waitloop\r\n" +
-                "tasklist /FI \"IMAGENAME eq ClipboardPro.exe\" 2>NUL | find /I \"ClipboardPro.exe\" >NUL\r\n" +
-                "if not errorlevel 1 (\r\n" +
-                "    timeout /t 1 /nobreak >NUL\r\n" +
-                "    goto waitloop\r\n" +
-                ")\r\n" +
-                $"\"{tempFilePath}\" /VERYSILENT /NORESTART /SUPPRESSMSGBOXES\r\n" +
-                "del \"%~f0\"\r\n";
-
-            File.WriteAllText(batPath, batContent);
-
-            // Launch the batch script detached (hidden), then shutdown the app
+            // Launch installer or updated binary with elevation to prevent Inno Setup CallSpawnServer error
             var psi = new ProcessStartInfo
             {
-                FileName = "cmd.exe",
-                Arguments = $"/c start /min \"\" \"{batPath}\"",
+                FileName = tempFilePath,
                 UseShellExecute = true,
-                WindowStyle = ProcessWindowStyle.Hidden,
-                CreateNoWindow = true
+                Verb = "runas"
             };
-            Process.Start(psi);
+            try
+            {
+                Process.Start(psi);
+            }
+            catch
+            {
+                // Fallback without runas verb if not elevated or user declined prompt
+                Process.Start(new ProcessStartInfo { FileName = tempFilePath, UseShellExecute = true });
+            }
 
             // Shutdown application gracefully
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
@@ -220,7 +224,6 @@ namespace ClipboardPro.Services
                 System.Windows.Application.Current.Shutdown();
             });
         }
-
 
         private static bool IsNewerVersion(string remoteStr, string currentStr)
         {
