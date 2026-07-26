@@ -22,7 +22,7 @@ DisableProgramGroupPage=yes
 DisableWelcomePage=no
 PrivilegesRequired=admin
 OutputDir=.
-OutputBaseFilename={#AppName}
+OutputBaseFilename=ClipboardPro-Setup
 SetupIconFile=..\ClipboardPro.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -114,15 +114,18 @@ procedure InitializeWizard();
 var
   CustomLabel: TLabel;
 begin
-  // Branding Label at bottom-left
-  CustomLabel := TLabel.Create(WizardForm);
-  CustomLabel.Parent := WizardForm;
-  CustomLabel.Left := ScaleX(10);
-  CustomLabel.Top := WizardForm.ClientHeight - ScaleY(25);
-  CustomLabel.Caption := 'Developed by ' + '{#AppDeveloper}' + ' || ' + '{#AppPublisher}';
-  CustomLabel.Font.Color := clGrayText;
-  CustomLabel.Font.Name := 'Segoe UI';
-  CustomLabel.Font.Size := 8;
+  if not WizardSilent then
+  begin
+    // Branding Label at bottom-left
+    CustomLabel := TLabel.Create(WizardForm);
+    CustomLabel.Parent := WizardForm;
+    CustomLabel.Left := ScaleX(10);
+    CustomLabel.Top := WizardForm.ClientHeight - ScaleY(25);
+    CustomLabel.Caption := 'Developed by ' + '{#AppDeveloper}' + ' || ' + '{#AppPublisher}';
+    CustomLabel.Font.Color := clGrayText;
+    CustomLabel.Font.Name := 'Segoe UI';
+    CustomLabel.Font.Size := 8;
+  end;
 end;
 
 function InitializeUninstall(): Boolean;
@@ -167,15 +170,9 @@ begin
 end;
 
 function InitializeSetup(): Boolean;
-var
-  ErrorCode: Integer;
 begin
   DotNetAsked := False;
   DotNetUserConfirmed := False;
-  
-  // Safe kill the process if running, to ensure files can be overwritten
-  Exec(ExpandConstant('{sys}\taskkill.exe'), '/f /im {#AppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
-  
   Result := True;
 end;
 
