@@ -126,7 +126,7 @@ begin
   end;
 end;
 
-function InitializeSetup(): Boolean;
+function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ErrorCode: Integer;
 begin
@@ -137,6 +137,11 @@ begin
          '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
   except
   end;
+  Result := '';
+end;
+
+function InitializeSetup(): Boolean;
+begin
   Result := True;
 end;
 
