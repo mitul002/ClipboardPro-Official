@@ -547,20 +547,22 @@
 
                         <!-- ── ABOUT ─────────────────────────── -->
                         <StackPanel x:Name="PanelAbout" Visibility="Collapsed">
-                            <Border Style="{StaticResource Card}" Padding="40">
+                            <Border Style="{StaticResource Card}" Padding="28,24">
                                 <StackPanel HorizontalAlignment="Center">
-                                    <Border Width="100" Height="100" CornerRadius="24" Background="{DynamicResource BgSidebar}" Margin="0,0,0,24">
-                                        <Image Source="pack://application:,,,/logo.png" Width="70" Height="70" Stretch="Uniform" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    <Border Width="80" Height="80" CornerRadius="20" Background="{DynamicResource BgSidebar}" Margin="0,0,0,16">
+                                        <Image Source="pack://application:,,,/logo.png" Width="54" Height="54" Stretch="Uniform" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
                                     </Border>
                                     
-                                    <TextBlock Text="ClipboardPro" Foreground="{DynamicResource TextPrimary}" FontSize="32" FontWeight="ExtraBold" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="Professional High-Performance Clipboard Manager" Foreground="{DynamicResource TextMuted}" FontSize="14" Margin="0,4,0,32" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="ClipboardPro" Foreground="{DynamicResource TextPrimary}" FontSize="28" FontWeight="ExtraBold" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Professional High-Performance Clipboard Manager" Foreground="{DynamicResource TextMuted}" FontSize="13" Margin="0,4,0,20" HorizontalAlignment="Center"/>
                                     
-                                    <Border Background="{DynamicResource BadgeBg}" CornerRadius="8" Padding="12,4" HorizontalAlignment="Center" Margin="0,0,0,40">
-                                        <TextBlock Text="Version 1.4.0" Foreground="{DynamicResource AccentPrimary}" FontSize="12" FontWeight="Bold"/>
-                                    </Border>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,24">
+                                        <Border Background="{DynamicResource BadgeBg}" CornerRadius="8" Padding="12,4" VerticalAlignment="Center">
+                                            <TextBlock Text="Version 1.4.0" Foreground="{DynamicResource AccentPrimary}" FontSize="12" FontWeight="Bold"/>
+                                        </Border>
+                                    </StackPanel>
 
-                                    <Grid Width="300">
+                                    <Grid Width="300" Margin="0,0,0,24">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="*"/>
@@ -577,10 +579,8 @@
                                         </StackPanel>
                                     </Grid>
 
-                                    <TextBlock Text="© 2026 Magnetieght EU. All rights reserved." Foreground="{DynamicResource TextMuted}" FontSize="11" Margin="0,40,0,0" HorizontalAlignment="Center"/>
-
                                     <!-- Update Section (Minimalist OrbitSwipe style) -->
-                                    <StackPanel Margin="0,20,0,0" HorizontalAlignment="Center">
+                                    <StackPanel Margin="0,4,0,20" HorizontalAlignment="Center">
                                         <!-- Row with Spinner + Text Link Button -->
                                         <StackPanel x:Name="UpdRow" Orientation="Horizontal" HorizontalAlignment="Center">
                                             <!-- Rotating Loading Spinner -->
@@ -629,6 +629,8 @@
                                             </ProgressBar>
                                         </StackPanel>
                                     </StackPanel>
+
+                                    <TextBlock Text="© 2026 Magnetieght EU. All rights reserved." Foreground="{DynamicResource TextMuted}" FontSize="11" HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
