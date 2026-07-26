@@ -126,7 +126,12 @@ begin
 end;
 
 function InitializeSetup(): Boolean;
+var
+  ErrorCode: Integer;
 begin
+  // Kill any running ClipboardPro process before setup, so no "close app" dialog appears
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/f /im {#AppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
+  Sleep(500);
   Result := True;
 end;
 
