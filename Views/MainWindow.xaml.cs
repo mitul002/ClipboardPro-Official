@@ -44,6 +44,7 @@ namespace ClipboardPro.Views
                 if (listBox != null) Helpers.ScrollAnimationHelper.ApplyScrollEffects(listBox);
                 AnimateRestore();
                 UpdateActiveFilterUI();
+                _ = CheckUpdateOnStartupAsync();
             };
 
             _vm.PropertyChanged += (s, e) =>
@@ -699,6 +700,29 @@ namespace ClipboardPro.Views
         {
             var win = new SettingsWindow(_vm) { Owner = this };
             win.ShowDialog();
+        }
+
+        private async System.Threading.Tasks.Task CheckUpdateOnStartupAsync()
+        {
+            await System.Threading.Tasks.Task.Delay(3000);
+            try
+            {
+                var result = await UpdateService.CheckForUpdatesAsync();
+                if (result != null && result.Available)
+                {
+                    this.Dispatcher.Invoke(() =>
+                    {
+                        string msg = $"A new version (v{result.Version}) of ClipboardPro is available!\n\nWould you like to open Settings and update now?";
+                        if (WpfMsgBox.Show(msg, "Update Available", WpfMsgBoxBtn.YesNo, WpfMsgBoxImg.Information) == WpfMsgBoxResult.Yes)
+                        {
+                            var settingsWin = new SettingsWindow(_vm) { Owner = this };
+                            settingsWin.OpenAboutTabAndCheckUpdate();
+                            settingsWin.ShowDialog();
+                        }
+                    });
+                }
+            }
+            catch { }
         }
 
         private void BtnPrettify_Click(object sender, System.Windows.RoutedEventArgs e)

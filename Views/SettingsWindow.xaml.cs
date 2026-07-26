@@ -211,6 +211,30 @@ namespace ClipboardPro.Views
             }
         }
 
+        public void SelectTab(string tabName)
+        {
+            WpfButton? targetBtn = tabName.ToLower() switch
+            {
+                "about" => BtnNavAbout,
+                "shortcuts" => BtnNavShortcuts,
+                "history" => BtnNavHistory,
+                "data" => BtnNavData,
+                "license" => BtnNavLicense,
+                _ => BtnNavGeneral
+            };
+
+            if (targetBtn != null)
+            {
+                Nav_Click(targetBtn, new RoutedEventArgs());
+            }
+        }
+
+        public void OpenAboutTabAndCheckUpdate()
+        {
+            SelectTab("About");
+            BtnCheckUpdate_Click(BtnCheckUpdate, new RoutedEventArgs());
+        }
+
         private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
         
         private void Window_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
