@@ -48,33 +48,55 @@ namespace ClipboardPro.Services
             {
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(10);
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("ClipboardPro-AutoUpdater/1.0");
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) ClipboardPro-AutoUpdater/1.0");
 
-                var jsonStr = await client.GetStringAsync(ReleasesUrl);
-                var json = JObject.Parse(jsonStr);
-
-                string tagName = json.Value<string>("tag_name") ?? json.Value<string>("name") ?? "";
-                string notes = json.Value<string>("body") ?? "New version available with improvements and bug fixes.";
-
+                string tagName = "";
+                string notes = "New version available with improvements and performance optimizations.";
                 string downloadUrl = "";
-                var assets = json["assets"] as JArray;
-                if (assets != null)
+
+                // Attempt 1: GitHub API
+                try
                 {
-                    foreach (var a in assets)
+                    var jsonStr = await client.GetStringAsync(ReleasesUrl);
+                    var json = JObject.Parse(jsonStr);
+
+                    tagName = json.Value<string>("tag_name") ?? json.Value<string>("name") ?? "";
+                    notes = json.Value<string>("body") ?? notes;
+
+                    var assets = json["assets"] as JArray;
+                    if (assets != null)
                     {
-                        string name = a.Value<string>("name")?.ToLowerInvariant() ?? "";
-                        if (name.EndsWith(".exe") || name.EndsWith(".msi") || name.EndsWith(".zip"))
+                        foreach (var a in assets)
                         {
-                            downloadUrl = a.Value<string>("browser_download_url") ?? "";
-                            if (name.Contains("clipboardpro") || name.Contains("setup"))
-                                break;
+                            string name = a.Value<string>("name")?.ToLowerInvariant() ?? "";
+                            if (name.EndsWith(".exe") || name.EndsWith(".msi") || name.EndsWith(".zip"))
+                            {
+                                downloadUrl = a.Value<string>("browser_download_url") ?? "";
+                                if (name.Contains("clipboardpro") || name.Contains("setup"))
+                                    break;
+                            }
+                        }
+
+                        if (string.IsNullOrEmpty(downloadUrl) && assets.Count > 0)
+                        {
+                            downloadUrl = assets[0].Value<string>("browser_download_url") ?? "";
                         }
                     }
-
-                    if (string.IsNullOrEmpty(downloadUrl) && assets.Count > 0)
+                }
+                catch
+                {
+                    // Fallback to HTML Redirect check if GitHub API is rate-limited or fails
+                    tagName = await GetLatestTagFromHtmlAsync();
+                    if (!string.IsNullOrEmpty(tagName))
                     {
-                        downloadUrl = assets[0].Value<string>("browser_download_url") ?? "";
+                        downloadUrl = $"https://github.com/{GITHUB_REPO}/releases/download/{tagName}/ClipboardPro-Setup.exe";
                     }
+                }
+
+                if (string.IsNullOrEmpty(tagName))
+                {
+                    result.Error = "Could not check for updates";
+                    return result;
                 }
 
                 string remoteVersionStr = tagName.TrimStart('v', 'V');
@@ -87,6 +109,7 @@ namespace ClipboardPro.Services
                 }
                 else
                 {
+                    result.Available = false;
                     result.Version = remoteVersionStr;
                 }
             }
@@ -96,6 +119,33 @@ namespace ClipboardPro.Services
             }
 
             return result;
+        }
+
+        private static async Task<string> GetLatestTagFromHtmlAsync()
+        {
+            try
+            {
+                using var handler = new HttpClientHandler { AllowAutoRedirect = false };
+                using var client = new HttpClient(handler);
+                client.Timeout = TimeSpan.FromSeconds(8);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) ClipboardPro-AutoUpdater/1.0");
+
+                var resp = await client.GetAsync($"https://github.com/{GITHUB_REPO}/releases/latest");
+                if (resp.StatusCode == System.Net.HttpStatusCode.Redirect || 
+                    resp.StatusCode == System.Net.HttpStatusCode.MovedPermanently || 
+                    resp.StatusCode == System.Net.HttpStatusCode.Found ||
+                    resp.StatusCode == (System.Net.HttpStatusCode)302)
+                {
+                    var location = resp.Headers.Location?.ToString() ?? "";
+                    int idx = location.LastIndexOf('/');
+                    if (idx >= 0 && idx < location.Length - 1)
+                    {
+                        return location.Substring(idx + 1);
+                    }
+                }
+            }
+            catch { }
+            return "";
         }
 
         public static async Task DownloadAndInstallAsync(string downloadUrl, IProgress<(long downloaded, long total, int percent)> progress, CancellationToken cancellationToken = default)
@@ -135,13 +185,22 @@ namespace ClipboardPro.Services
 
             fileStream.Close();
 
-            // Launch installer or updated binary
+            // Launch installer or updated binary with elevation to prevent Inno Setup CallSpawnServer error
             var psi = new ProcessStartInfo
             {
                 FileName = tempFilePath,
-                UseShellExecute = true
+                UseShellExecute = true,
+                Verb = "runas"
             };
-            Process.Start(psi);
+            try
+            {
+                Process.Start(psi);
+            }
+            catch
+            {
+                // Fallback without runas verb if not elevated or user declined prompt
+                Process.Start(new ProcessStartInfo { FileName = tempFilePath, UseShellExecute = true });
+            }
 
             // Shutdown application gracefully
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
