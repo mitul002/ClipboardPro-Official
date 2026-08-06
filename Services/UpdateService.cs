@@ -32,11 +32,11 @@ namespace ClipboardPro.Services
                 try
                 {
                     var ver = Assembly.GetExecutingAssembly().GetName().Version;
-                    return ver != null ? $"{ver.Major}.{ver.Minor}.{ver.Build}" : "1.4.0";
+                    return ver != null ? $"{ver.Major}.{ver.Minor}.{ver.Build}" : "1.4.2";
                 }
                 catch
                 {
-                    return "1.4.0";
+                    return "1.4.2";
                 }
             }
         }
@@ -153,23 +153,7 @@ namespace ClipboardPro.Services
             if (string.IsNullOrEmpty(downloadUrl))
                 throw new ArgumentException("Download URL is empty.");
 
-            string tempDir = Path.Combine(Path.GetTempPath(), "ClipboardProUpdates");
-            if (!Directory.Exists(tempDir))
-            {
-                Directory.CreateDirectory(tempDir);
-            }
-            else
-            {
-                try
-                {
-                    foreach (var f in Directory.GetFiles(tempDir))
-                    {
-                        try { File.Delete(f); } catch { }
-                    }
-                }
-                catch { }
-            }
-
+            string tempDir = Path.GetTempPath();
             string fileName = Path.GetFileName(new Uri(downloadUrl).LocalPath);
             if (string.IsNullOrEmpty(fileName)) fileName = "ClipboardPro-Setup.exe";
             string tempFilePath = Path.Combine(tempDir, fileName);

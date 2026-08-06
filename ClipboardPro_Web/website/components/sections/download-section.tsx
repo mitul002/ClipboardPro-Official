@@ -147,7 +147,7 @@ export function DownloadSection() {
                   />
                   <Download className="w-6 h-6 relative z-10 shrink-0" />
                   <span className="relative z-10 font-bold">Download ClipboardPro</span>
-                  <span className="text-sm opacity-75 font-normal relative z-10 shrink-0">v1.4.0</span>
+                  <span className="text-sm opacity-75 font-normal relative z-10 shrink-0">v1.4.2</span>
                 </a>
               </Button>
             </motion.div>

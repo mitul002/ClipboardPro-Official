@@ -22,11 +22,12 @@ DisableProgramGroupPage=yes
 DisableWelcomePage=no
 PrivilegesRequired=admin
 OutputDir=.
-OutputBaseFilename=ClipboardPro
+OutputBaseFilename={#AppName}
 SetupIconFile=..\ClipboardPro.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
+AppMutex=ClipboardPro_Mutex_Global
 VersionInfoVersion={#AppVersion}
 VersionInfoCompany={#AppPublisher}
 VersionInfoDescription={#AppName} Setup
@@ -175,10 +176,9 @@ begin
   DotNetAsked := False;
   DotNetUserConfirmed := False;
   
-  // Safe kill the process if running, so setup proceeds without prompt
+  // Safe kill the process if running, to ensure files can be overwritten
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/f /im {#AppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode);
-  Sleep(500);
-
+  
   Result := True;
 end;
 

@@ -237,7 +237,8 @@ namespace ClipboardPro.Views
             _availableCategories.Add("Phone");
             _availableCategories.Add("Image");
             _availableCategories.Add("Color");
-            _availableCategories.Add("Path");
+            _availableCategories.Add("File Received");
+            _availableCategories.Add("File");
             _availableCategories.Add("Directory");
             _availableCategories.Add("Private");
 
@@ -273,6 +274,7 @@ namespace ClipboardPro.Views
                 {
                     "Color" => "Colors",
                     "Path" => "File Received",
+                    "File" => "File",
                     _ => filter
                 };
             }

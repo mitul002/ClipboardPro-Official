@@ -558,7 +558,7 @@
                                     
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,24">
                                         <Border Background="{DynamicResource BadgeBg}" CornerRadius="8" Padding="12,4" VerticalAlignment="Center">
-                                            <TextBlock Text="Version 1.4.0" Foreground="{DynamicResource AccentPrimary}" FontSize="12" FontWeight="Bold"/>
+                                            <TextBlock Text="Version 1.4.2" Foreground="{DynamicResource AccentPrimary}" FontSize="12" FontWeight="Bold"/>
                                         </Border>
                                     </StackPanel>
 

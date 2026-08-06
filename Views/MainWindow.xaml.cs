@@ -333,7 +333,7 @@ namespace ClipboardPro.Views
             {
                 string filter = btn.Tag.ToString() ?? "All Items";
 
-                if (!filter.StartsWith("cat:") && !new[] { "All Items", "Favorites", "Pinned", "Snippets", "URL", "Email", "Code", "Phone", "Image", "Color", "Path", "Directory", "Private" }.Contains(filter))
+                if (!filter.StartsWith("cat:") && !new[] { "All Items", "Favorites", "Pinned", "Snippets", "URL", "Email", "Code", "Phone", "Image", "Color", "Path", "Directory", "Private", "File Received", "File" }.Contains(filter))
                 {
                     if (_vm.Settings.CustomCategories.Any(c => c.Name == filter))
                         filter = "cat:" + filter;
@@ -459,6 +459,8 @@ namespace ClipboardPro.Views
                 "Code"      => "Clear all non-pinned code snippets?",
                 "Phone"     => "Clear all non-pinned phone numbers?",
                 "Color"     => "Clear all non-pinned colors?",
+                "File Received" => "Clear all non-pinned received files?",
+                "File"      => "Clear all non-pinned files?",
                 "Path"      => "Clear all non-pinned files?",
                 "Directory" => "Clear all non-pinned directories?",
                 "Private"   => "Clear all non-pinned private items?",
@@ -1030,7 +1032,7 @@ namespace ClipboardPro.Views
                         item.IsSensitive = false; // Move out of private when moving to custom cat
                         _vm.UpdateItemCategory(item, catName);
                     }
-                    else if (new[] { "URL", "Email", "Code", "Phone", "Image", "Color", "Path" }.Contains(tag)) 
+                    else if (new[] { "URL", "Email", "Code", "Phone", "Image", "Color", "Path", "File", "File Received" }.Contains(tag)) 
                     {
                         item.IsSensitive = false; // Move out of private when moving back to stock type
                         _vm.UpdateItemCategory(item, ""); // Move back to main flow

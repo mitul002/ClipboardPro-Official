@@ -293,7 +293,7 @@ export function HeroSection() {
               >
                 <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full glass-card text-xs font-semibold uppercase tracking-wider text-indigo-300 border-indigo-500/25 hover:border-indigo-400/40 transition-colors cursor-default">
                   <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Version 1.4.0 — Native Windows App</span>
+                  <span>Version 1.4.2 — Native Windows App</span>
                   <ArrowRight className="w-3.5 h-3.5 text-indigo-400" />
                 </span>
               </motion.div>
@@ -430,7 +430,7 @@ export function HeroSection() {
                     <img src="/logo.png" alt="Logo" className="w-4.5 h-4.5 object-contain" />
                     <span className="text-xs font-bold text-slate-200 tracking-tight flex items-center gap-1.5">
                       <span>ClipboardPro</span>
-                      <span className="text-[9px] text-indigo-400 font-mono bg-indigo-500/10 px-1.5 py-0.5 rounded">Native Windows v1.4.0</span>
+                      <span className="text-[9px] text-indigo-400 font-mono bg-indigo-500/10 px-1.5 py-0.5 rounded">Native Windows v1.4.2</span>
                     </span>
                   </div>
                   {/* Title Bar Action Dots */}

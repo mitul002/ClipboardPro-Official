@@ -58,7 +58,7 @@ if not exist !ISCC! (
 )
 
 echo [4/4] Compiling Installer...
-!ISCC! "clipboardpro_standalone_installer .iss"
+!ISCC! "clipboardpro_standalone_installer.iss"
 
 if %ERRORLEVEL% NEQ 0 (
     echo.

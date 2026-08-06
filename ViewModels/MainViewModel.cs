@@ -81,7 +81,7 @@ namespace ClipboardPro.ViewModels
         public ObservableCollection<CategoryInfo> CustomCategoryInfos { get; } = new();
         public List<ClipboardItem> AllItems => _allItems;
 
-        private int _totalCount, _favoriteCount, _pinnedCount, _urlCount, _emailCount, _codeCount, _phoneCount, _imageCount, _colorCount, _pathCount, _directoryCount, _privateCount, _snippetCount;
+        private int _totalCount, _favoriteCount, _pinnedCount, _urlCount, _emailCount, _codeCount, _phoneCount, _imageCount, _colorCount, _pathCount, _directoryCount, _privateCount, _snippetCount, _fileCount;
         public int TotalCount => _totalCount;
         public int FavoriteCount => _favoriteCount;
         public int PinnedCount => _pinnedCount;
@@ -95,6 +95,7 @@ namespace ClipboardPro.ViewModels
         public int DirectoryCount => _directoryCount;
         public int PrivateCount => _privateCount;
         public int SnippetCount => _snippetCount;
+        public int FileCount => _fileCount;
 
         private AppSettings _settings = new();
         public AppSettings Settings { get => _settings; private set { if (_settings?.CustomCategories != null) _settings.CustomCategories.CollectionChanged -= CustomCategory_CollectionChanged; _settings = value; OnPropertyChanged(); if (_settings?.CustomCategories != null) _settings.CustomCategories.CollectionChanged += CustomCategory_CollectionChanged; UpdateCategoryCounts(); } }
@@ -189,10 +190,14 @@ namespace ClipboardPro.ViewModels
         {
             lock (_collectionLock)
             {
-                _totalCount = _allItems.Count; _favoriteCount = 0; _pinnedCount = 0; _urlCount = 0; _emailCount = 0; _codeCount = 0; _phoneCount = 0; _imageCount = 0; _colorCount = 0; _pathCount = 0; _directoryCount = 0; _privateCount = 0;
+                _totalCount = _allItems.Count; _favoriteCount = 0; _pinnedCount = 0; _urlCount = 0; _emailCount = 0; _codeCount = 0; _phoneCount = 0; _imageCount = 0; _colorCount = 0; _pathCount = 0; _directoryCount = 0; _privateCount = 0; _fileCount = 0;
                 foreach (var i in _allItems)
                 {
                     if (i.IsFavorite) _favoriteCount++; if (i.IsPinned) _pinnedCount++; if (i.IsSensitive) _privateCount++;
+                    
+                    if (i.Category == "Received") _pathCount++;
+                    if (i.Type == ClipboardItemType.Path) _fileCount++;
+
                     switch (i.Type)
                     {
                         case ClipboardItemType.URL: _urlCount++; break;
@@ -201,13 +206,12 @@ namespace ClipboardPro.ViewModels
                         case ClipboardItemType.Phone: _phoneCount++; break;
                         case ClipboardItemType.Image: _imageCount++; break;
                         case ClipboardItemType.Color: _colorCount++; break;
-                        case ClipboardItemType.Path: _pathCount++; break;
                         case ClipboardItemType.Directory: _directoryCount++; break;
                     }
                 }
                 _snippetCount = App.TextExpander?.Snippets.Count ?? 0;
             }
-            OnPropertyChanged(nameof(TotalCount)); OnPropertyChanged(nameof(FavoriteCount)); OnPropertyChanged(nameof(PinnedCount)); OnPropertyChanged(nameof(UrlCount)); OnPropertyChanged(nameof(EmailCount)); OnPropertyChanged(nameof(CodeCount)); OnPropertyChanged(nameof(PhoneCount)); OnPropertyChanged(nameof(ImageCount)); OnPropertyChanged(nameof(ColorCount)); OnPropertyChanged(nameof(PathCount)); OnPropertyChanged(nameof(DirectoryCount)); OnPropertyChanged(nameof(PrivateCount)); OnPropertyChanged(nameof(SnippetCount));
+            OnPropertyChanged(nameof(TotalCount)); OnPropertyChanged(nameof(FavoriteCount)); OnPropertyChanged(nameof(PinnedCount)); OnPropertyChanged(nameof(UrlCount)); OnPropertyChanged(nameof(EmailCount)); OnPropertyChanged(nameof(CodeCount)); OnPropertyChanged(nameof(PhoneCount)); OnPropertyChanged(nameof(ImageCount)); OnPropertyChanged(nameof(ColorCount)); OnPropertyChanged(nameof(PathCount)); OnPropertyChanged(nameof(DirectoryCount)); OnPropertyChanged(nameof(PrivateCount)); OnPropertyChanged(nameof(SnippetCount)); OnPropertyChanged(nameof(FileCount));
 
             if (Settings?.CustomCategories != null)
             {
@@ -508,7 +512,7 @@ namespace ClipboardPro.ViewModels
                 List<ClipboardItem> itemsCopy; lock (_collectionLock) { itemsCopy = _allItems.ToList(); }
                 var result = itemsCopy.AsEnumerable();
                 if (!string.IsNullOrEmpty(_activeFilter) && _activeFilter.StartsWith("cat:")) { var catName = _activeFilter.Substring(4); result = result.Where(i => string.Equals(i.Category, catName, StringComparison.OrdinalIgnoreCase)); }
-                else { result = _activeFilter switch { "Favorites" => result.Where(i => i.IsFavorite), "Pinned" => result.Where(i => i.IsPinned), "URL" => result.Where(i => i.Type == ClipboardItemType.URL), "Email" => result.Where(i => i.Type == ClipboardItemType.Email), "Code" => result.Where(i => i.Type == ClipboardItemType.Code), "Phone" => result.Where(i => i.Type == ClipboardItemType.Phone), "Image" => result.Where(i => i.Type == ClipboardItemType.Image), "Color" => result.Where(i => i.Type == ClipboardItemType.Color), "Path" => result.Where(i => i.Type == ClipboardItemType.Path), "Directory" => result.Where(i => i.Type == ClipboardItemType.Directory), "File Received" => result.Where(i => i.Type == ClipboardItemType.Path || i.Type == ClipboardItemType.Directory), "Private" => result.Where(i => i.IsSensitive), _ => result }; }
+                else { result = _activeFilter switch { "Favorites" => result.Where(i => i.IsFavorite), "Pinned" => result.Where(i => i.IsPinned), "URL" => result.Where(i => i.Type == ClipboardItemType.URL), "Email" => result.Where(i => i.Type == ClipboardItemType.Email), "Code" => result.Where(i => i.Type == ClipboardItemType.Code), "Phone" => result.Where(i => i.Type == ClipboardItemType.Phone), "Image" => result.Where(i => i.Type == ClipboardItemType.Image), "Color" => result.Where(i => i.Type == ClipboardItemType.Color), "Path" => result.Where(i => i.Type == ClipboardItemType.Path), "Directory" => result.Where(i => i.Type == ClipboardItemType.Directory), "File Received" => result.Where(i => i.Category == "Received"), "File" => result.Where(i => i.Type == ClipboardItemType.Path), "Private" => result.Where(i => i.IsSensitive), _ => result }; }
                 
                 if (!string.IsNullOrWhiteSpace(_searchText)) {
                     var search = _searchText.Trim();
@@ -707,7 +711,34 @@ namespace ClipboardPro.ViewModels
         private DateTime _lastInternalCopyTime = DateTime.MinValue;
         private string _lastInternalCopyContent = string.Empty;
 
-        private void OnNetworkItemReceived(ClipboardItem item) { Dispatcher.BeginInvoke(new Action(() => { if (!_allItems.Any(i => i.Content == item.Content && i.Type == item.Type)) { item.Timestamp = DateTime.Now; item.Id = Guid.NewGuid().ToString(); AddItem(item); } })); }
+        private void OnNetworkItemReceived(ClipboardItem item)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                bool isDuplicate = false;
+                lock (_collectionLock)
+                {
+                    isDuplicate = _allItems.Any(i => i.Type == item.Type &&
+                        (item.Type == ClipboardItemType.Image
+                            ? (!string.IsNullOrEmpty(i.ImageHash) && i.ImageHash == item.ImageHash)
+                            : (i.Content == item.Content)));
+                }
+
+                item.Category = "Received";
+
+                if (!isDuplicate || !Settings.MergeConsecutiveDuplicates)
+                {
+                    item.Timestamp = DateTime.Now;
+                    item.Id = Guid.NewGuid().ToString();
+                    AddItem(item);
+                }
+                else if (isDuplicate && Settings.MergeConsecutiveDuplicates)
+                {
+                    item.Timestamp = DateTime.Now;
+                    AddItem(item);
+                }
+            }));
+        }
         
         public async Task<bool> SendToDevice(ClipboardItem item, PeerInfo peer, System.Threading.CancellationToken ct = default, System.Threading.ManualResetEventSlim? pauseEvent = null) { try { return await _network.SendItemAsync(item, peer.IP, peer.Port, ct, pauseEvent); } catch { return false; } }
         
